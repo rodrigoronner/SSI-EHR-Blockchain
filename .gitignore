@@ -1,0 +1,11 @@
+node_modules/
+artifacts/
+cache/
+.DS_Store
+
+# Ephemeral / regenerated per local run — not meaningful to version
+deployment.json
+keystores/
+
+# Paper source lives separately (Overleaf); not part of this code repo
+Self_Sovereign_Identity_Management_through_Decentralized_Identifiers_and_Verifiable_Credentials/

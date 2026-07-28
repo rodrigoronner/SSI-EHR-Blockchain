@@ -1,0 +1,34 @@
+{
+  "name": "ssi-ehr-blockchain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference implementation and experiments (cost, performance, security) for the DID/VC-based SSI framework for EHRs described in the paper.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "demo": "node scripts/demo-use-cases.js",
+    "vc-demo": "node scripts/issue-vc.js",
+    "ipfs-demo": "node scripts/ipfs-store.js",
+    "bench:cost": "node scripts/benchmark-cost.js",
+    "bench:performance": "node scripts/benchmark-performance.js",
+    "bench:offchain": "node scripts/benchmark-offchain.js",
+    "recovery-demo": "node scripts/demo-guardian-recovery.js"
+  },
+  "devDependencies": {
+    "hardhat": "2.29.0",
+    "@nomicfoundation/hardhat-toolbox": "5.0.0"
+  },
+  "dependencies": {
+    "did-jwt": "8.0.18",
+    "did-jwt-vc": "4.0.16",
+    "did-resolver": "5.0.1",
+    "ethr-did": "3.0.38",
+    "ethr-did-resolver": "14.1.0",
+    "helia": "7.1.2",
+    "@helia/unixfs": "8.0.5",
+    "multiformats": "14.0.5",
+    "uint8arrays": "6.1.1"
+  }
+}
