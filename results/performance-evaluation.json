@@ -1,0 +1,50 @@
+{
+  "latency": {
+    "autoMine": {
+      "n": 8,
+      "p50Ms": 38,
+      "p95Ms": 43,
+      "p99Ms": 43,
+      "minMs": 38,
+      "maxMs": 43
+    },
+    "interval2000ms": {
+      "n": 8,
+      "p50Ms": 2026,
+      "p95Ms": 2039,
+      "p99Ms": 2039,
+      "minMs": 1964,
+      "maxMs": 2039
+    },
+    "interval4000ms": {
+      "n": 8,
+      "p50Ms": 3991,
+      "p95Ms": 4061,
+      "p99Ms": 4061,
+      "minMs": 3983,
+      "maxMs": 4061
+    }
+  },
+  "throughput": [
+    {
+      "batchSize": 10,
+      "elapsedSeconds": 0.084,
+      "txPerSecond": 119.04761904761904
+    },
+    {
+      "batchSize": 50,
+      "elapsedSeconds": 0.205,
+      "txPerSecond": 243.90243902439025
+    },
+    {
+      "batchSize": 100,
+      "elapsedSeconds": 0.349,
+      "txPerSecond": 286.5329512893983
+    },
+    {
+      "batchSize": 500,
+      "elapsedSeconds": 1.674,
+      "txPerSecond": 298.6857825567503
+    }
+  ]
+}

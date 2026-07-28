@@ -1,0 +1,90 @@
+{
+  "assumptions": {
+    "gasPriceGwei": 20,
+    "ethUsdPrice": 3000,
+    "trialsPerOperation": 5
+  },
+  "network": {
+    "chainId": 31337,
+    "registryAddress": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
+  },
+  "deployment": {
+    "gasUsed": 1186625,
+    "eth": 0.0237325,
+    "usd": 71.1975
+  },
+  "operations": {
+    "addDelegate": {
+      "n": 5,
+      "minGas": 72202,
+      "meanGas": 72212,
+      "maxGas": 72214,
+      "meanEth": 0.00144424,
+      "meanUsd": 4.33272
+    },
+    "revokeDelegate": {
+      "n": 5,
+      "minGas": 37669,
+      "meanGas": 37679,
+      "maxGas": 37681,
+      "meanEth": 0.00075358,
+      "meanUsd": 2.26074
+    },
+    "setAttributeShort": {
+      "n": 5,
+      "minGas": 34742,
+      "meanGas": 34752,
+      "maxGas": 34754,
+      "meanEth": 0.00069504,
+      "meanUsd": 2.08512
+    },
+    "setAttributeCidLength": {
+      "n": 5,
+      "minGas": 34934,
+      "meanGas": 34944,
+      "maxGas": 34946,
+      "meanEth": 0.00069888,
+      "meanUsd": 2.0966400000000003
+    },
+    "revokeAttribute": {
+      "n": 5,
+      "minGas": 34648,
+      "meanGas": 34658,
+      "maxGas": 34660,
+      "meanEth": 0.00069316,
+      "meanUsd": 2.0794799999999998
+    },
+    "changeOwner": {
+      "n": 5,
+      "minGas": 51741,
+      "meanGas": 51760,
+      "maxGas": 51765,
+      "meanEth": 0.0010352,
+      "meanUsd": 3.1056
+    },
+    "setGuardians": {
+      "n": 5,
+      "minGas": 143520,
+      "meanGas": 143520,
+      "maxGas": 143520,
+      "meanEth": 0.0028704,
+      "meanUsd": 8.6112
+    },
+    "approveRecoveryNonExecuting": {
+      "n": 5,
+      "minGas": 76480,
+      "meanGas": 76480,
+      "maxGas": 76480,
+      "meanEth": 0.0015296,
+      "meanUsd": 4.5888
+    },
+    "approveRecoveryExecuting": {
+      "n": 5,
+      "minGas": 102737,
+      "meanGas": 102737,
+      "maxGas": 102737,
+      "meanEth": 0.00205474,
+      "meanUsd": 6.16422
+    }
+  }
+}
