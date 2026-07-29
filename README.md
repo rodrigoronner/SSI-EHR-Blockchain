@@ -2,14 +2,14 @@
 
 A working implementation of a self-sovereign identity (SSI) framework for Electronic Health Records, built on Ethereum. Patients, physicians, and hospitals each hold a Decentralized Identifier (DID) they control directly, medical operations are issued and verified as signed Verifiable Credentials (VCs), and clinical documents are encrypted and kept off-chain on IPFS, with only their hash anchored on the blockchain.
 
-The goal is to move EHR access control away from a central database that a single institution can lose, leak, or lock a patient out of, and put it under a mechanism where ownership, delegation, and revocation are enforced by a smart contract instead of an administrator's discretion.
+The goal is to move EHR access control away from a central database that a single institution can lose, leak, or lock a patient out of, and place it under a mechanism that enforces ownership, delegation, and revocation via a smart contract rather than an administrator's discretion.
 
 This repository is the reference implementation behind the paper *"Self-Sovereign Identity Management through Decentralized Identifiers and Verifiable Credentials"*. Every number quoted in the paper's Cost, Performance, and Security sections was produced by the scripts and tests in this repo, and they're included here so the results can be reproduced independently.
 
 ## What it does
 
 - **Identity**: every actor gets a `did:ethr` identity anchored on-chain — created implicitly from an Ethereum address, no registration step or central issuer required.
-- **Ownership transfer**: a DID's controlling key can change (e.g. a hospital entity acquired by a new owner) without the identifier itself changing.
+- **Ownership transfer**: a DID's controlling key can change (e.g., a hospital entity acquired by a new owner) without the identifier itself changing.
 - **Delegation**: an identity owner can grant another address time-bounded authority over part of their identity — for example, a parent delegating a child's identity to a temporary caregiver, with automatic expiry so nothing needs to be manually revoked later.
 - **Attributes**: an identity can publish attributes such as a service endpoint or a document reference, each with its own validity period, and revoke them immediately if needed.
 - **Verifiable Credentials**: clinical actions (a lab request, a prescription) are issued as signed VC-JWTs tied to the issuing DID, so any third party can verify who issued them and that they haven't been tampered with — no shared database required.
@@ -20,7 +20,7 @@ This repository is the reference implementation behind the paper *"Self-Sovereig
 
 Everything on-chain runs through a single smart contract, `EHRRegistry.sol`, which implements the same interface as the ERC-1056 `EthereumDIDRegistry`. That's a deliberate choice: it means standard `ethr-did` / `ethr-did-resolver` tooling can resolve DIDs against this contract with no custom resolver logic.
 
-The contract itself never stores document contents or attribute values — only events. A DID Document is reconstructed by a resolver walking the event log backwards from the identity's most recent change. This keeps writes cheap and keeps the contract's job narrow: proving who controls an identity and what they've published, not storing the data itself.
+The contract itself never stores document contents or attribute values — only events. A DID Document is reconstructed by a resolver walking the event log backward from the identity's most recent change. This keeps writing cheap and keeps the contract's job narrow: proving who controls an identity and what they've published, not storing the data itself.
 
 ```
 Patient / Physician / Hospital
@@ -68,7 +68,7 @@ Every tool below is pinned to an exact version in `package.json` (Python/Matplot
 |---|---|---|
 | `helia` | 7.1.2 | Embeddable IPFS node — no external daemon to run; this is what actually stores and retrieves the encrypted documents. |
 | `@helia/unixfs` | 8.0.5 | File-oriented `addBytes`/`cat` API on top of Helia. |
-| `multiformats` | 14.0.5 | Encodes/decodes the CIDs (content identifiers) IPFS and the registry's attributes both use. |
+| `multiformats` | 14.0.5 | Encodes/decodes the CIDs (content identifiers) IPFS and the registry's attributes, both of which are used. |
 | `uint8arrays` | 6.1.1 | Byte-array utilities shared by the IPFS and encryption code paths. |
 | Node.js `crypto` (built-in) | — | AES-256-GCM client-side encryption of documents before they ever reach IPFS. |
 
@@ -116,13 +116,13 @@ In a second terminal, deploy the contract and try the demos:
 
 ```bash
 npm run deploy       # deploys EHRRegistry, writes deployment.json
-npm run demo         # the core identity use cases end to end
+npm run demo         # the core identity use cases end-to-end
 npm run vc-demo      # issue, verify, tamper, and expire a Verifiable Credential
 npm run ipfs-demo    # encrypt a document, store it on IPFS, anchor its CID on-chain, retrieve and decrypt it
 npm run recovery-demo # encrypted keystore + guardian-based social recovery
 ```
 
-**Redeploy between runs.** Every script shares state through the same deployed contract, and running them back to back without `npm run deploy` in between will silently distort results or fail outright. Two concrete cases: the cost benchmark calls `changeOwner`, which hands ownership of its test identities to throwaway addresses, so a later benchmark trying to write to those identities reverts with `not authorized`; and any script that emits attribute events makes subsequent DID resolution slower, because resolving a DID Document means walking that identity's event log. In one measurement, running the throughput benchmark first inflated Verifiable Credential verification from 26.7 ms to 37.3 ms.
+**Redeploy between runs.** Every script shares state through the same deployed contract, and running them back-to-back without `npm run deploy` in between will silently distort results or fail outright. Two concrete cases: the cost benchmark calls `changeOwner`, which hands ownership of its test identities to throwaway addresses, so a later benchmark trying to write to those identities reverts with `not authorized`; and any script that emits attribute events makes subsequent DID resolution slower, because resolving a DID Document means walking that identity's event log. In one measurement, running the throughput benchmark first inflated Verifiable Credential verification from 26.7 ms to 37.3 ms.
 
 To run the automated test suite instead (self-contained, no local node required):
 
@@ -147,7 +147,7 @@ An identity's private key is stored as a password-encrypted keystore file, the s
 
 ## Known limitations
 
-- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly (same EVM), but latency and throughput should be read as a local proxy, not a mainnet claim.
+- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly (same EVM), but latency and throughput should be treated as local proxies, not mainnet claims.
 - The IPFS node used here is in-process and non-persistent — there's no pinning service behind it.
 - The contract has not been through a formal security audit.
 - Guardian recovery executes as soon as the approval threshold is met, with no time-lock or veto window for the legitimate owner to cancel a fraudulent attempt.
