@@ -1,61 +1,50 @@
 # Results Summary
 
-Generated from a real deployment of `EHRRegistry.sol` on a local Hardhat network (chain id `31337`, Node v22, Hardhat 2.29, ethers 6.17). All numbers below are measured, not estimated — see `scripts/benchmark-cost.js` and `scripts/benchmark-performance.js` for the exact procedure, and `cost-evaluation.json`/`performance-evaluation.json` for raw data.
+Measured from a real deployment of `EHRRegistry.sol` on a local Hardhat network (chain id `31337`), with Solidity 0.8.24, Hardhat 2.29.0, ethers 6.17, and Node.js 22. Every number here is measured rather than estimated; the raw data is in `cost-evaluation.json`, `performance-evaluation.json`, and `offchain-performance.json`, and the procedures are in `scripts/benchmark-*.js`.
 
-## 1. Cost Evaluation
+Re-running the benchmarks regenerates the JSON/CSV files. If you do that, the numbers below may shift slightly (gas is deterministic, wall-clock timings are not) — treat the JSON as authoritative.
 
-Assumptions (explicit, not a live price feed): gas price = 20 gwei, ETH/USD = $3,000. 5 trials per operation, each on a freshly-created identity to avoid warm-storage discounts masking the real first-use cost (revoke/changeOwner are measured following a prior add/first-touch on that same identity, matching how they'd actually be used).
+## 1. Cost
 
-| Operation | Gas (mean) | Gas (min–max) | Cost (ETH) | Cost (USD, @ $3,000/ETH) |
+Gas price 20 gwei, ETH/USD $3,000. Both are stated assumptions, not a live price feed. 5 trials per operation, each against a distinct identity so that repeated measurements of the same operation are comparable.
+
+| Operation | Gas (mean) | Gas (min–max) | Cost (ETH) | Cost (USD) |
 |---|---|---|---|---|
-| `addDelegate` | 72,234 | 72,224–72,236 | 0.00144468 | $4.33 |
-| `revokeDelegate` | 37,634 | 37,624–37,636 | 0.00075268 | $2.26 |
-| `setAttribute` (~41 B value, service URL) | 34,818 | 34,808–34,820 | 0.00069636 | $2.09 |
-| `setAttribute` (~59 B value, IPFS CID) | 35,010 | 35,000–35,012 | 0.00070020 | $2.10 |
-| `revokeAttribute` | 34,635 | 34,625–34,637 | 0.00069270 | $2.08 |
-| `changeOwner` | 51,741 | 51,731–51,743 | 0.00103482 | $3.10 |
+| `addDelegate` | 72,212 | 72,202–72,214 | 0.00144424 | $4.33 |
+| `revokeDelegate` | 37,679 | 37,669–37,681 | 0.00075358 | $2.26 |
+| `setAttribute` (~41 B, service URL) | 34,752 | 34,742–34,754 | 0.00069504 | $2.09 |
+| `setAttribute` (~59 B, IPFS CID) | 34,944 | 34,934–34,946 | 0.00069888 | $2.10 |
+| `revokeAttribute` | 34,658 | 34,648–34,660 | 0.00069316 | $2.08 |
+| `changeOwner` | 51,760 | 51,741–51,765 | 0.00103520 | $3.11 |
+| `setGuardians` (3 guardians) | 143,520 | 143,520 | 0.00287040 | $8.61 |
+| `approveRecovery` (below threshold) | 76,480 | 76,480 | 0.00152960 | $4.59 |
+| `approveRecovery` (executes recovery) | 102,737 | 102,737 | 0.00205474 | $6.16 |
 
-LaTeX-ready:
-```latex
-\begin{table}[h]
-\centering
-\caption{Gas cost per EHRRegistry operation (mean of 5 trials, 20 gwei, ETH = \$3{,}000)}
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Operation} & \textbf{Gas (mean)} & \textbf{Cost (ETH)} & \textbf{Cost (USD)} \\
-\hline
-addDelegate & 72{,}234 & 0.00144468 & \$4.33 \\
-revokeDelegate & 37{,}634 & 0.00075268 & \$2.26 \\
-setAttribute (URL, \textasciitilde41B) & 34{,}818 & 0.00069636 & \$2.09 \\
-setAttribute (IPFS CID, \textasciitilde59B) & 35{,}010 & 0.00070020 & \$2.10 \\
-revokeAttribute & 34{,}635 & 0.00069270 & \$2.08 \\
-changeOwner & 51{,}741 & 0.00103482 & \$3.10 \\
-\hline
-\end{tabular}
-\end{table}
-```
+Contract deployment, a one-time cost: 1,186,625 gas (0.02373250 ETH, $71.20).
 
-**In-line text for Section 6.1 (Cost Evaluation):**
-> Under a representative gas price of 20 gwei and an ETH/USD rate of \$3{,}000, the six on-chain operations exposed by the EHRRegistry contract cost between 34{,}635 and 72{,}234 gas (\$2.08–\$4.33 per call). Delegation (`addDelegate`) is the most expensive operation, since it is the only one writing to a previously-untouched (cold) storage slot; its own revocation is roughly half the cost once that slot is warm. Publishing or revoking an attribute — the mechanism used for both service-endpoint discovery and anchoring off-chain IPFS document hashes — costs under \$2.10 regardless of whether the value is a short URL or a full IPFS CID, since the dominant cost is event-log emission rather than storage.
+Two things worth noting. `addDelegate` is the most expensive of the six core operations because it is the first write against a fresh identity and therefore pays the cold-slot premium on the shared `changed` counter as well as on the delegate slot itself; revoking that delegate costs roughly half once both are warm. And publishing an attribute costs the same whether the value is a short URL or a full IPFS CID, because the contract never persists attribute values — it only emits them as events.
 
-## 2. Performance Evaluation
+Creating an identity costs nothing: under `did:ethr` the registry resolves an identity's controller to its own address until ownership is explicitly transferred, so no transaction is needed and there is no row for it above.
 
-### 2.1 Latency vs. mining cadence
+## 2. Performance
+
+### 2.1 Confirmation latency vs. mining cadence
 
 8 sequential transactions per mode.
 
 | Mining mode | p50 | p95 | p99 | min | max |
 |---|---|---|---|---|---|
-| Auto-mine (instant, e.g. L2/permissioned-style) | 38 ms | 43 ms | 43 ms | 38 ms | 43 ms |
-| Fixed interval, 2 s blocks (approximates a fast public chain) | 2026 ms | 2039 ms | 2039 ms | 1964 ms | 2039 ms |
-| Fixed interval, 4 s blocks | 3991 ms | 4061 ms | 4061 ms | 3983 ms | 4061 ms |
+| Auto-mine (instant) | 38 ms | 43 ms | 43 ms | 38 ms | 43 ms |
+| Fixed 2 s blocks | 2,026 ms | 2,039 ms | 2,039 ms | 1,964 ms | 2,039 ms |
+| Fixed 4 s blocks | 3,991 ms | 4,061 ms | 4,061 ms | 3,983 ms | 4,061 ms |
 
-**In-line text:**
-> Confirmation latency is dominated entirely by the network's block time, not by contract execution: under instant (auto-mined) local settings — representative of an L2 or permissioned deployment — median confirmation was 38 ms. Under fixed 2 s and 4 s block intervals, approximating public-chain conditions, median confirmation tracked the configured interval almost exactly (2,026 ms and 3,991 ms respectively), with p95/p99 adding only 1–2% overhead. This confirms that EHRRegistry's own gas cost (Section 6.1) is not the bottleneck for any deployment target; end-to-end latency is set by the choice of underlying network.
+Median latency tracks the configured block time almost exactly. Under the fixed intervals p95 sits under 2% above the median; under auto-mine the relative spread is larger (13%) but the absolute difference is 5 ms and reflects client-side RPC scheduling rather than the chain.
 
-### 2.2 Throughput / scalability (auto-mine)
+These figures measure inclusion in a block, not finality. On a public PoS network an operation should be treated as reversible until finalised, roughly two epochs later.
 
-Concurrent batches of `setAttribute` calls, round-robined across 20 funded accounts (each account's own transactions submitted in strict nonce order; different accounts run concurrently).
+### 2.2 Throughput under concurrent load (auto-mine)
+
+Concurrent batches of `setAttribute`, round-robined across 20 funded accounts. Each account submits its own transactions in strict nonce order; different accounts run concurrently.
 
 | Batch size | Elapsed | Throughput |
 |---|---|---|
@@ -64,46 +53,55 @@ Concurrent batches of `setAttribute` calls, round-robined across 20 funded accou
 | 100 | 0.349 s | 286.5 tx/s |
 | 500 | 1.674 s | 298.7 tx/s |
 
-LaTeX-ready:
-```latex
-\begin{table}[h]
-\centering
-\caption{Throughput under concurrent load (auto-mine, local network)}
-\begin{tabular}{|r|r|r|}
-\hline
-\textbf{Batch size} & \textbf{Elapsed (s)} & \textbf{Throughput (tx/s)} \\
-\hline
-10  & 0.084 & 119.0 \\
-50  & 0.205 & 243.9 \\
-100 & 0.349 & 286.5 \\
-500 & 1.674 & 298.7 \\
-\hline
-\end{tabular}
-\end{table}
-```
+Throughput plateaus near 300 tx/s. Since gas per call is fixed regardless of batch size, the plateau is not EVM execution cost growing with load — but we did not isolate whether the residual bottleneck is the client submission path or the single node's block production, which under auto-mine mines one block per transaction. Read this as relative scalability on one node, not as a mainnet throughput figure.
 
-**In-line text:**
-> Throughput scales with concurrent load and plateaus around 300 tx/s on this local single-node setup, growing from 119 tx/s at a batch of 10 to 299 tx/s at a batch of 500 — indicating the client-side submission pipeline (not the EVM itself) is the limiting factor at this scale, since gas cost per call is fixed regardless of batch size. This is a proxy for relative scalability, not a mainnet throughput claim (see limitations below).
+### 2.3 Off-chain document path vs. document size
 
-## 3. Security Analysis
+Each stage timed separately, from a short textual report to an imaging-sized study. Random bytes stand in for real documents: whatever the plaintext, what reaches IPFS is ciphertext, which is incompressible.
 
-33/33 automated tests passing (`npx hardhat test`). Full requirement-by-requirement mapping in `security-analysis.md`. Headline result for the paper's Section 6.3:
+| Size | Trials | Encrypt | Store (IPFS) | Retrieve (IPFS) | Decrypt | Round trip |
+|---|---|---|---|---|---|---|
+| 80 B | 10 | 0.025 ms | 0.160 ms | 0.097 ms | 0.013 ms | 0.30 ms |
+| 10 KB | 10 | 0.009 ms | 0.038 ms | 0.030 ms | 0.008 ms | 0.08 ms |
+| 100 KB | 10 | 0.037 ms | 0.061 ms | 0.033 ms | 0.032 ms | 0.16 ms |
+| 1 MB | 10 | 0.305 ms | 0.618 ms | 0.493 ms | 0.301 ms | 1.72 ms |
+| 10 MB | 5 | 5.280 ms | 4.680 ms | 2.087 ms | 2.845 ms | 14.89 ms |
+| 50 MB | 3 | 43.602 ms | 19.484 ms | 9.037 ms | 15.425 ms | 87.55 ms |
 
-> All access-control requirements (Section 3) are enforced on-chain by EHRRegistry's `onlyOwner` modifier: every attempted unauthorized ownership transfer, delegation, or attribute change was rejected in testing. Delegated authorization is time-bounded by construction and was confirmed to lapse automatically once its validity period elapses, independent of explicit revocation; explicit revocation was confirmed to take effect immediately rather than waiting for natural expiry. On the Verifiable Credential side, tampering with a signed credential's payload and presenting an expired credential were both independently detected and rejected, and a credential's issuer cannot be spoofed by writing a different DID into the payload — verification always attributes the credential to whichever key actually signed it.
+Below roughly 100 KB, fixed per-call overhead dominates and size barely matters. Above 1 MB every stage scales linearly, and the balance shifts: at 50 MB, encryption and decryption together account for two thirds of the round trip, exceeding both IPFS stages. At imaging scale the bottleneck is the cryptographic layer, not the content-addressed store.
 
-## 4. Key Management
+Sustained IPFS throughput at 50 MB was 2.57 GB/s storing and 5.53 GB/s retrieving. This is an in-process node with no network hop, so treat these as a lower bound on latency; a distributed IPFS deployment would be governed by bandwidth and peer availability.
 
-Previously an open gap; now implemented and tested (11 additional tests in `test/recovery.test.js`, plus `scripts/demo-guardian-recovery.js`).
+### 2.4 Verifiable Credentials
 
-- **Storage**: `scripts/lib/keystore.js` encrypts a private key to a password-protected V3 keystore JSON file (the same format geth/MetaMask use) via `wallet.encrypt(password)`, and decrypts it back via `Wallet.fromEncryptedJson`.
-- **Recovery from genuine key loss**: `EHRRegistry.sol` now includes guardian-based social recovery — `setGuardians(identity, guardians[], threshold)` (owner-only, set up in advance) and `approveRecovery(identity, proposedNewOwner)` (guardian-only; executes automatically once the M-of-N threshold is met). This is the same trust-delegation concept already used for use case (iv), applied to the "the key itself is gone" scenario that plain `changeOwner` cannot handle (it requires a signature from the very key assumed lost).
+10 trials after an untimed warm-up pass.
 
-**In-line text for the paper:**
-> Key management is addressed via two complementary mechanisms. First, at-rest key storage uses a standard, password-encrypted keystore file (the V3 format used by geth and MetaMask), so the raw private key is never persisted unencrypted. Second, recovery from genuine key loss — as opposed to the delegation/revocation already covered in use cases (ii)-(iv) — is handled by a guardian-based social recovery extension: a patient or physician pre-registers a set of $N$ guardians and an approval threshold $M$; if the private key is later lost entirely, any $M$ of the $N$ guardians can jointly authorize moving the identity to a new address, verified in an 11-test adversarial suite covering unauthorized approval attempts, double-voting by a single guardian, and confirmation that the old key is powerless immediately after recovery executes.
+| Operation | Mean | Min | Max |
+|---|---|---|---|
+| Sign | 0.53 ms | 0.31 ms | 1.38 ms |
+| Verify | 26.42 ms | 22.13 ms | 31.15 ms |
 
-## Limitations to state explicitly in the paper
+Verification is the slower side because it additionally resolves the issuer's DID Document from the registry's event log to obtain the verification key; signing uses a key already held locally. Neither depends on document size.
 
-- All measurements are from a **local Hardhat network**, not a public testnet or mainnet. Gas costs transfer directly (same EVM), but latency/throughput numbers are a local proxy, not a live-network claim.
-- IPFS storage uses an in-process Helia node with no persistent pinning — adequate for measuring the storage/retrieval mechanism, not for demonstrating long-term off-chain durability.
-- No formal contract audit was performed.
-- Guardian recovery has no time-lock/veto window (recovery executes the instant the threshold is met) — a real deployment would likely add a delay during which the legitimate owner could cancel a fraudulent recovery attempt.
+## 3. Security
+
+33 automated tests, all passing (`npx hardhat test`), of which 16 are adversarial cases asserting that an unauthorised or invalid action fails. The requirement-by-requirement mapping is in `security-analysis.md`.
+
+Access control is enforced entirely on-chain by the `onlyOwner` check, with no off-chain gatekeeper to bypass: unauthorised ownership transfers, delegations, and attribute changes all revert. Delegation is time-bounded by construction, so a forgotten revocation degrades to "no access" rather than "permanent access". On the credential side, tampering, expiry, and issuer spoofing are each independently detected — verification attributes a credential to whichever key actually signed it, regardless of what the payload claims.
+
+## 4. Key management
+
+Two complementary mechanisms, covered by 11 tests in `test/recovery.test.js` plus `scripts/demo-guardian-recovery.js`.
+
+**Storage.** `scripts/lib/keystore.js` encrypts a private key into a password-protected V3 keystore file — the format geth and MetaMask use — so the raw key is never written to disk in the clear.
+
+**Recovery from genuine key loss.** `setGuardians(identity, guardians[], threshold)` registers an M-of-N guardian set in advance, while the key still works. If the key is later lost, `approveRecovery(identity, newAddress)` lets guardians jointly move the identity to a new address once M of them agree, with no signature from the lost key. Recovery clears the guardian set, so the new owner must deliberately re-authorise guardians. `changeOwner` cannot do this, since it requires a signature from precisely the key assumed lost.
+
+## Limitations
+
+- Measurements come from a **local Hardhat network**, not a public testnet or mainnet. Gas transfers directly (same EVM); latency and throughput are a local proxy.
+- IPFS runs on an in-process Helia node with no pinning, which measures the storage mechanism but not long-term durability.
+- **Revoking a delegate does not revoke decryption.** The registry controls who is recorded as authorised, but a party who already fetched and decrypted a document keeps it. Key distribution is assumed to happen out of band and is outside the scope of this implementation.
+- **On-chain metadata is public even when content is not.** Anchoring a CID reveals that an address published a document of a given category at a given time, and repeated observations are linkable.
+- No formal verification or third-party audit of the contract.
+- Guardian recovery has no time-lock or veto window: it executes the moment the threshold is met, so a colluding majority of guardians can take over an identity.

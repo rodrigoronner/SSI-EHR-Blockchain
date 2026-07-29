@@ -1,31 +1,207 @@
 {
-  "nTrials": 10,
+  "vcTrials": 10,
   "ipfs": {
-    "store": {
-      "n": 10,
-      "meanMs": 0.26,
-      "minMs": 0.05041699999992488,
-      "maxMs": 1.2901669999999967
-    },
-    "retrieve": {
-      "n": 10,
-      "meanMs": 0.11,
-      "minMs": 0.036042000000065855,
-      "maxMs": 0.4505410000000438
-    }
+    "bySize": [
+      {
+        "label": "80 B",
+        "bytes": 80,
+        "trials": 10,
+        "encrypt": {
+          "n": 10,
+          "meanMs": 0.025,
+          "minMs": 0.005,
+          "maxMs": 0.109
+        },
+        "store": {
+          "n": 10,
+          "meanMs": 0.16,
+          "minMs": 0.048,
+          "maxMs": 0.308
+        },
+        "retrieve": {
+          "n": 10,
+          "meanMs": 0.097,
+          "minMs": 0.036,
+          "maxMs": 0.205
+        },
+        "decrypt": {
+          "n": 10,
+          "meanMs": 0.013,
+          "minMs": 0.005,
+          "maxMs": 0.035
+        },
+        "storeMbPerS": 0.48,
+        "retrieveMbPerS": 0.79
+      },
+      {
+        "label": "10 KB",
+        "bytes": 10240,
+        "trials": 10,
+        "encrypt": {
+          "n": 10,
+          "meanMs": 0.009,
+          "minMs": 0.007,
+          "maxMs": 0.012
+        },
+        "store": {
+          "n": 10,
+          "meanMs": 0.038,
+          "minMs": 0.029,
+          "maxMs": 0.067
+        },
+        "retrieve": {
+          "n": 10,
+          "meanMs": 0.03,
+          "minMs": 0.023,
+          "maxMs": 0.063
+        },
+        "decrypt": {
+          "n": 10,
+          "meanMs": 0.008,
+          "minMs": 0.006,
+          "maxMs": 0.011
+        },
+        "storeMbPerS": 256.99,
+        "retrieveMbPerS": 325.52
+      },
+      {
+        "label": "100 KB",
+        "bytes": 102400,
+        "trials": 10,
+        "encrypt": {
+          "n": 10,
+          "meanMs": 0.037,
+          "minMs": 0.025,
+          "maxMs": 0.049
+        },
+        "store": {
+          "n": 10,
+          "meanMs": 0.061,
+          "minMs": 0.054,
+          "maxMs": 0.085
+        },
+        "retrieve": {
+          "n": 10,
+          "meanMs": 0.033,
+          "minMs": 0.026,
+          "maxMs": 0.04
+        },
+        "decrypt": {
+          "n": 10,
+          "meanMs": 0.032,
+          "minMs": 0.023,
+          "maxMs": 0.062
+        },
+        "storeMbPerS": 1600.92,
+        "retrieveMbPerS": 2959.28
+      },
+      {
+        "label": "1 MB",
+        "bytes": 1048576,
+        "trials": 10,
+        "encrypt": {
+          "n": 10,
+          "meanMs": 0.305,
+          "minMs": 0.2,
+          "maxMs": 0.653
+        },
+        "store": {
+          "n": 10,
+          "meanMs": 0.618,
+          "minMs": 0.392,
+          "maxMs": 1.522
+        },
+        "retrieve": {
+          "n": 10,
+          "meanMs": 0.493,
+          "minMs": 0.149,
+          "maxMs": 1.576
+        },
+        "decrypt": {
+          "n": 10,
+          "meanMs": 0.301,
+          "minMs": 0.189,
+          "maxMs": 0.739
+        },
+        "storeMbPerS": 1618.12,
+        "retrieveMbPerS": 2028.4
+      },
+      {
+        "label": "10 MB",
+        "bytes": 10485760,
+        "trials": 5,
+        "encrypt": {
+          "n": 5,
+          "meanMs": 5.28,
+          "minMs": 2.151,
+          "maxMs": 8.015
+        },
+        "store": {
+          "n": 5,
+          "meanMs": 4.68,
+          "minMs": 3.803,
+          "maxMs": 5.503
+        },
+        "retrieve": {
+          "n": 5,
+          "meanMs": 2.087,
+          "minMs": 0.789,
+          "maxMs": 5.177
+        },
+        "decrypt": {
+          "n": 5,
+          "meanMs": 2.845,
+          "minMs": 1.665,
+          "maxMs": 5.004
+        },
+        "storeMbPerS": 2136.75,
+        "retrieveMbPerS": 4791.57
+      },
+      {
+        "label": "50 MB",
+        "bytes": 52428800,
+        "trials": 3,
+        "encrypt": {
+          "n": 3,
+          "meanMs": 43.602,
+          "minMs": 18.079,
+          "maxMs": 76.684
+        },
+        "store": {
+          "n": 3,
+          "meanMs": 19.484,
+          "minMs": 17.936,
+          "maxMs": 22.488
+        },
+        "retrieve": {
+          "n": 3,
+          "meanMs": 9.037,
+          "minMs": 7.312,
+          "maxMs": 11.868
+        },
+        "decrypt": {
+          "n": 3,
+          "meanMs": 15.425,
+          "minMs": 12.367,
+          "maxMs": 18.151
+        },
+        "storeMbPerS": 2566.21,
+        "retrieveMbPerS": 5532.81
+      }
+    ]
   },
   "vc": {
     "sign": {
       "n": 10,
-      "meanMs": 1.65,
-      "minMs": 0.34133299999996325,
-      "maxMs": 12.37250000000006
+      "meanMs": 0.532,
+      "minMs": 0.308,
+      "maxMs": 1.378
     },
     "verify": {
       "n": 10,
-      "meanMs": 25.55,
-      "minMs": 21.901416999999924,
-      "maxMs": 27.549624999999992
+      "meanMs": 26.421,
+      "minMs": 22.126,
+      "maxMs": 31.154
     }
   }
 }

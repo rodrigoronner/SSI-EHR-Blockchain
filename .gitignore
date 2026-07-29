@@ -9,3 +9,15 @@ keystores/
 
 # Paper source lives separately (Overleaf); not part of this code repo
 Self_Sovereign_Identity_Management_through_Decentralized_Identifiers_and_Verifiable_Credentials/
+
+# Manuscript files never belong in this repo, wherever they end up sitting:
+# drafts, backups, build output, and the LaTeX intermediates that come with them
+*.tex
+*.pdf
+*.docx
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.toc

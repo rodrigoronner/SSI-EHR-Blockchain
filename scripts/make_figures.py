@@ -81,7 +81,10 @@ def make_performance_figure():
     with open(os.path.join(RESULTS, "offchain-performance.json")) as f:
         offchain = json.load(f)
 
-    fig, axes = plt.subplots(2, 2, figsize=(8.6, 6.8))
+    # Single column of 4 stacked subplots (rather than a 2x2 grid) so each
+    # plot renders at close to the paper's full column width and is legible
+    # on its own instead of being squeezed into a quarter of the figure.
+    fig, axes = plt.subplots(4, 1, figsize=(5.0, 9.6))
 
     # (a) latency vs mining mode
     modes = [
@@ -93,17 +96,17 @@ def make_performance_figure():
     p95 = [data["latency"][k]["p95Ms"] for k, _ in modes]
     x = range(len(modes))
     width = 0.35
-    ax = axes[0][0]
+    ax = axes[0]
     ax.bar([i - width / 2 for i in x], p50, width=width, label="p50", color=BLUE)
     ax.bar([i + width / 2 for i in x], p95, width=width, label="p95", color=GREY)
     ax.set_xticks(list(x))
     ax.set_xticklabels([label for _, label in modes])
     ax.set_ylabel("Confirmation latency (ms)")
     ax.set_title("(a) On-chain latency vs. mining cadence")
-    ax.legend(frameon=False, fontsize=8)
+    ax.legend(frameon=False, fontsize=9)
 
     # (b) throughput vs batch size
-    ax = axes[0][1]
+    ax = axes[1]
     batch_sizes = [row["batchSize"] for row in data["throughput"]]
     tps = [row["txPerSecond"] for row in data["throughput"]]
     ax.plot(batch_sizes, tps, marker="o", color=BLUE)
@@ -114,27 +117,46 @@ def make_performance_figure():
     ax.set_xticks(batch_sizes)
     ax.set_xticklabels([str(b) for b in batch_sizes])
 
-    # (c) IPFS store/retrieve latency
-    ax = axes[1][0]
-    ipfs_labels = ["store", "retrieve"]
-    ipfs_means = [offchain["ipfs"]["store"]["meanMs"], offchain["ipfs"]["retrieve"]["meanMs"]]
-    ax.bar(ipfs_labels, ipfs_means, color=BLUE, width=0.5)
+    # (c) off-chain document path, swept across document sizes
+    ax = axes[2]
+    by_size = offchain["ipfs"]["bySize"]
+    sizes = [row["bytes"] for row in by_size]
+    stages = [
+        ("encrypt", "encrypt", BLUE, "o", "-"),
+        ("store", "store (IPFS)", GREY, "s", "-"),
+        ("retrieve", "retrieve (IPFS)", GREY, "^", "--"),
+        ("decrypt", "decrypt", BLUE, "v", "--"),
+    ]
+    for key, label, color, marker, style in stages:
+        ax.plot(
+            sizes,
+            [row[key]["meanMs"] for row in by_size],
+            marker=marker,
+            markersize=4,
+            linestyle=style,
+            color=color,
+            label=label,
+        )
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Document size")
     ax.set_ylabel("Latency (ms)")
-    ax.set_title("(c) IPFS store/retrieve latency")
-    for i, m in enumerate(ipfs_means):
-        ax.text(i, m, f"{m:.2f} ms", ha="center", va="bottom", fontsize=8, color=GREY)
+    ax.set_title("(c) Off-chain document path vs. size")
+    ax.set_xticks(sizes)
+    ax.set_xticklabels([row["label"].replace(" ", "") for row in by_size], fontsize=8)
+    ax.legend(frameon=False, fontsize=7.5, ncol=2)
 
     # (d) VC sign/verify latency
-    ax = axes[1][1]
+    ax = axes[3]
     vc_labels = ["sign", "verify"]
     vc_means = [offchain["vc"]["sign"]["meanMs"], offchain["vc"]["verify"]["meanMs"]]
     ax.bar(vc_labels, vc_means, color=BLUE, width=0.5)
     ax.set_ylabel("Latency (ms)")
     ax.set_title("(d) VC sign/verify latency")
     for i, m in enumerate(vc_means):
-        ax.text(i, m, f"{m:.2f} ms", ha="center", va="bottom", fontsize=8, color=GREY)
+        ax.text(i, m, f"{m:.2f} ms", ha="center", va="bottom", fontsize=9, color=GREY)
 
-    fig.tight_layout()
+    fig.tight_layout(h_pad=2.0)
     out = os.path.join(FIGDIR, "performance-evaluation.pdf")
     fig.savefig(out)
     print("wrote", out)
