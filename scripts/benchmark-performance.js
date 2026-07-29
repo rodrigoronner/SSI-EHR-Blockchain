@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { ethers } = require("ethers");
 const { loadDeployment, getProvider, deriveWallet, createNonceTracker } = require("./lib/network");
+const { summarize, summarizeLatency, formatCi } = require("./lib/stats");
 
 // Performance Evaluation (paper Section "Results and Discussion"). Two
 // separate questions, measured separately against a running `npx hardhat
@@ -15,25 +16,11 @@ const { loadDeployment, getProvider, deriveWallet, createNonceTracker } = requir
 
 const artifact = require("../artifacts/contracts/EHRRegistry.sol/EHRRegistry.json");
 const NUM_POOL_WALLETS = 20; // Hardhat's default node only funds indices 0-19
-const LATENCY_SAMPLES_PER_MODE = 8;
+const LATENCY_SAMPLES_PER_MODE = 20;
 const THROUGHPUT_BATCH_SIZES = [10, 50, 100, 500];
-
-function percentile(sortedValues, p) {
-  const idx = Math.min(sortedValues.length - 1, Math.ceil((p / 100) * sortedValues.length) - 1);
-  return sortedValues[Math.max(0, idx)];
-}
-
-function summarizeLatencies(latenciesMs) {
-  const sorted = [...latenciesMs].sort((a, b) => a - b);
-  return {
-    n: sorted.length,
-    p50Ms: percentile(sorted, 50),
-    p95Ms: percentile(sorted, 95),
-    p99Ms: percentile(sorted, 99),
-    minMs: sorted[0],
-    maxMs: sorted[sorted.length - 1],
-  };
-}
+// Each batch size is run repeatedly rather than once, so that throughput can
+// be reported with a confidence interval instead of as a single observation.
+const THROUGHPUT_REPETITIONS = 5;
 
 async function setMining(provider, mode) {
   if (mode.type === "auto") {
@@ -68,9 +55,11 @@ async function runLatencyMode(provider, registryContract, wallet, nextNonce, mod
     await tx.wait();
     latencies.push(Date.now() - start);
   }
-  const stats = summarizeLatencies(latencies);
+  // Latency keeps its percentiles alongside the interval: the mean says what
+  // a typical operation costs, the tail says what a user occasionally waits.
+  const stats = summarizeLatency(latencies, 1);
   console.log(
-    `${label.padEnd(28)} p50=${stats.p50Ms}ms  p95=${stats.p95Ms}ms  p99=${stats.p99Ms}ms  min=${stats.minMs}ms  max=${stats.maxMs}ms`
+    `${label.padEnd(28)} mean=${formatCi(stats)}  p50=${stats.p50}ms  p95=${stats.p95}ms  p99=${stats.p99}ms`
   );
   return stats;
 }
@@ -135,12 +124,26 @@ async function main() {
   await setMining(provider, { type: "auto" });
 
   console.log("\n=== Performance Evaluation: throughput / scalability (auto-mine) ===");
+  console.log(`(${THROUGHPUT_REPETITIONS} repetitions per batch size, mean +/- 95% CI)`);
   for (const batchSize of THROUGHPUT_BATCH_SIZES) {
-    const result = await runThroughputBatch(provider, registryContract, pool, nextNonce, batchSize);
-    report.throughput.push(result);
+    const tps = [];
+    const elapsed = [];
+    for (let rep = 0; rep < THROUGHPUT_REPETITIONS; rep++) {
+      const result = await runThroughputBatch(provider, registryContract, pool, nextNonce, batchSize);
+      tps.push(result.txPerSecond);
+      elapsed.push(result.elapsedSeconds);
+    }
+    const tpsStats = summarize(tps, 2);
+    const elapsedStats = summarize(elapsed, 4);
+    report.throughput.push({
+      batchSize,
+      repetitions: THROUGHPUT_REPETITIONS,
+      elapsedSeconds: elapsedStats,
+      txPerSecond: tpsStats,
+    });
     console.log(
-      `batch=${String(batchSize).padEnd(4)} elapsed=${result.elapsedSeconds.toFixed(3)}s` +
-        `  throughput=${result.txPerSecond.toFixed(2)} tx/s`
+      `batch=${String(batchSize).padEnd(4)} elapsed=${elapsedStats.mean}s` +
+        `  throughput=${formatCi(tpsStats, "tx/s")}`
     );
   }
 
@@ -148,9 +151,12 @@ async function main() {
     path.join(__dirname, "..", "results", "performance-evaluation.json"),
     JSON.stringify(report, null, 2) + "\n"
   );
-  const csvLines = ["batch_size,elapsed_seconds,tx_per_second"];
+  const csvLines = ["batch_size,repetitions,elapsed_seconds,tx_per_second,tx_per_second_ci95"];
   for (const row of report.throughput) {
-    csvLines.push(`${row.batchSize},${row.elapsedSeconds},${row.txPerSecond}`);
+    csvLines.push(
+      `${row.batchSize},${row.repetitions},${row.elapsedSeconds.mean},` +
+        `${row.txPerSecond.mean},${row.txPerSecond.ci95}`
+    );
   }
   fs.writeFileSync(path.join(__dirname, "..", "results", "performance-evaluation.csv"), csvLines.join("\n") + "\n");
   console.log("\nWrote results/performance-evaluation.json and results/performance-evaluation.csv");

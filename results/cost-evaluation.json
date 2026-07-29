@@ -6,7 +6,7 @@
   },
   "network": {
     "chainId": 31337,
-    "registryAddress": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
+    "registryAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
   },
   "deployment": {
     "gasUsed": 1186625,
@@ -19,6 +19,8 @@
       "minGas": 72202,
       "meanGas": 72212,
       "maxGas": 72214,
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
       "meanEth": 0.00144424,
       "meanUsd": 4.33272
     },
@@ -27,6 +29,8 @@
       "minGas": 37669,
       "meanGas": 37679,
       "maxGas": 37681,
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
       "meanEth": 0.00075358,
       "meanUsd": 2.26074
     },
@@ -35,6 +39,8 @@
       "minGas": 34742,
       "meanGas": 34752,
       "maxGas": 34754,
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
       "meanEth": 0.00069504,
       "meanUsd": 2.08512
     },
@@ -43,6 +49,8 @@
       "minGas": 34934,
       "meanGas": 34944,
       "maxGas": 34946,
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
       "meanEth": 0.00069888,
       "meanUsd": 2.0966400000000003
     },
@@ -51,22 +59,28 @@
       "minGas": 34648,
       "meanGas": 34658,
       "maxGas": 34660,
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
       "meanEth": 0.00069316,
       "meanUsd": 2.0794799999999998
     },
     "changeOwner": {
       "n": 5,
-      "minGas": 51741,
-      "meanGas": 51760,
+      "minGas": 51753,
+      "meanGas": 51763,
       "maxGas": 51765,
-      "meanEth": 0.0010352,
-      "meanUsd": 3.1056
+      "sdGas": 5.4,
+      "ci95Gas": 6.7,
+      "meanEth": 0.00103526,
+      "meanUsd": 3.10578
     },
     "setGuardians": {
       "n": 5,
       "minGas": 143520,
       "meanGas": 143520,
       "maxGas": 143520,
+      "sdGas": 0,
+      "ci95Gas": 0,
       "meanEth": 0.0028704,
       "meanUsd": 8.6112
     },
@@ -75,6 +89,8 @@
       "minGas": 76480,
       "meanGas": 76480,
       "maxGas": 76480,
+      "sdGas": 0,
+      "ci95Gas": 0,
       "meanEth": 0.0015296,
       "meanUsd": 4.5888
     },
@@ -83,6 +99,8 @@
       "minGas": 102737,
       "meanGas": 102737,
       "maxGas": 102737,
+      "sdGas": 0,
+      "ci95Gas": 0,
       "meanEth": 0.00205474,
       "meanUsd": 6.16422
     }

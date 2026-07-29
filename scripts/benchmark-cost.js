@@ -5,6 +5,7 @@ const { DelegateTypes } = require("ethr-did");
 const artifact = require("../artifacts/contracts/EHRRegistry.sol/EHRRegistry.json");
 const { loadDeployment, getProvider, deriveWallet, createNonceTracker } = require("./lib/network");
 const { makeEthrDid } = require("./lib/did");
+const { summarize } = require("./lib/stats");
 
 // Cost Evaluation (paper Section "Results and Discussion"). Measures actual
 // gas usage from transaction receipts on a local Hardhat network for each
@@ -19,14 +20,20 @@ const NUM_IDENTITIES = 5;
 const IDENTITY_START_INDEX = 6; // avoid actors used by other demo scripts (0-5)
 const RECOVERY_IDENTITY_START_INDEX = 11; // separate pool so recovery doesn't disturb changeOwner's identities (6-10)
 
-function summarize(samples) {
+// Gas is a deterministic function of the input, so the interval here should
+// come out at or near zero. That is worth reporting rather than omitting: it
+// is the evidence that these costs carry no measurement uncertainty and
+// transfer unchanged to any EVM network, unlike the wall-clock benchmarks.
+function summarizeGas(samples) {
   const values = samples.map((s) => s.gasUsed);
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const stats = summarize(values, 1);
   return {
-    n: values.length,
+    n: stats.n,
     minGas: Math.min(...values),
-    meanGas: Math.round(mean),
+    meanGas: Math.round(stats.mean),
     maxGas: Math.max(...values),
+    sdGas: stats.sd,
+    ci95Gas: stats.ci95,
   };
 }
 
@@ -149,11 +156,11 @@ async function main() {
   }
 
   for (const [key, samples] of Object.entries(results)) {
-    const stats = summarize(samples);
+    const stats = summarizeGas(samples);
     const meanCost = gasToCost(stats.meanGas);
     report.operations[key] = { ...stats, meanEth: meanCost.eth, meanUsd: meanCost.usd };
     console.log(
-      `${key.padEnd(24)} gas[min/mean/max]=${stats.minGas}/${stats.meanGas}/${stats.maxGas}` +
+      `${key.padEnd(24)} gas=${stats.meanGas} +/- ${stats.ci95Gas} [${stats.minGas}-${stats.maxGas}]` +
         `  ~${meanCost.eth.toFixed(8)} ETH  (~$${meanCost.usd.toFixed(4)})`
     );
   }
@@ -162,14 +169,14 @@ async function main() {
     path.join(__dirname, "..", "results", "cost-evaluation.json"),
     JSON.stringify(report, null, 2) + "\n"
   );
-  const csvLines = ["operation,n,min_gas,mean_gas,max_gas,mean_eth,mean_usd"];
+  const csvLines = ["operation,n,min_gas,mean_gas,max_gas,sd_gas,ci95_gas,mean_eth,mean_usd"];
   if (report.deployment) {
     csvLines.push(
       `contractDeployment,1,${report.deployment.gasUsed},${report.deployment.gasUsed},${report.deployment.gasUsed},${report.deployment.eth},${report.deployment.usd}`
     );
   }
   for (const [key, stats] of Object.entries(report.operations)) {
-    csvLines.push(`${key},${stats.n},${stats.minGas},${stats.meanGas},${stats.maxGas},${stats.meanEth},${stats.meanUsd}`);
+    csvLines.push(`${key},${stats.n},${stats.minGas},${stats.meanGas},${stats.maxGas},${stats.sdGas},${stats.ci95Gas},${stats.meanEth},${stats.meanUsd}`);
   }
   fs.writeFileSync(path.join(__dirname, "..", "results", "cost-evaluation.csv"), csvLines.join("\n") + "\n");
   console.log("\nWrote results/cost-evaluation.json and results/cost-evaluation.csv");

@@ -1,50 +1,141 @@
 {
   "latency": {
     "autoMine": {
-      "n": 8,
-      "p50Ms": 38,
-      "p95Ms": 43,
-      "p99Ms": 43,
-      "minMs": 38,
-      "maxMs": 43
+      "n": 20,
+      "mean": 39.7,
+      "sd": 1.6,
+      "ci95": 0.7,
+      "ciLow": 39,
+      "ciHigh": 40.4,
+      "min": 37,
+      "max": 43,
+      "p50": 39,
+      "p95": 42,
+      "p99": 43
     },
     "interval2000ms": {
-      "n": 8,
-      "p50Ms": 2026,
-      "p95Ms": 2039,
-      "p99Ms": 2039,
-      "minMs": 1964,
-      "maxMs": 2039
+      "n": 20,
+      "mean": 2004.1,
+      "sd": 30,
+      "ci95": 14,
+      "ciLow": 1990.1,
+      "ciHigh": 2018.1,
+      "min": 1972,
+      "max": 2048,
+      "p50": 1987,
+      "p95": 2046,
+      "p99": 2048
     },
     "interval4000ms": {
-      "n": 8,
-      "p50Ms": 3991,
-      "p95Ms": 4061,
-      "p99Ms": 4061,
-      "minMs": 3983,
-      "maxMs": 4061
+      "n": 20,
+      "mean": 4002.4,
+      "sd": 31.1,
+      "ci95": 14.6,
+      "ciLow": 3987.8,
+      "ciHigh": 4017,
+      "min": 3947,
+      "max": 4075,
+      "p50": 4012,
+      "p95": 4019,
+      "p99": 4075
     }
   },
   "throughput": [
     {
       "batchSize": 10,
-      "elapsedSeconds": 0.084,
-      "txPerSecond": 119.04761904761904
+      "repetitions": 5,
+      "elapsedSeconds": {
+        "n": 5,
+        "mean": 0.068,
+        "sd": 0.0153,
+        "ci95": 0.019,
+        "ciLow": 0.049,
+        "ciHigh": 0.087,
+        "min": 0.059,
+        "max": 0.095
+      },
+      "txPerSecond": {
+        "n": 5,
+        "mean": 151.84,
+        "sd": 26.7,
+        "ci95": 33.14,
+        "ciLow": 118.7,
+        "ciHigh": 184.98,
+        "min": 105.26,
+        "max": 169.49
+      }
     },
     {
       "batchSize": 50,
-      "elapsedSeconds": 0.205,
-      "txPerSecond": 243.90243902439025
+      "repetitions": 5,
+      "elapsedSeconds": {
+        "n": 5,
+        "mean": 0.1892,
+        "sd": 0.0037,
+        "ci95": 0.0046,
+        "ciLow": 0.1846,
+        "ciHigh": 0.1938,
+        "min": 0.186,
+        "max": 0.195
+      },
+      "txPerSecond": {
+        "n": 5,
+        "mean": 264.35,
+        "sd": 5.11,
+        "ci95": 6.34,
+        "ciLow": 258.01,
+        "ciHigh": 270.69,
+        "min": 256.41,
+        "max": 268.82
+      }
     },
     {
       "batchSize": 100,
-      "elapsedSeconds": 0.349,
-      "txPerSecond": 286.5329512893983
+      "repetitions": 5,
+      "elapsedSeconds": {
+        "n": 5,
+        "mean": 0.3378,
+        "sd": 0.0059,
+        "ci95": 0.0073,
+        "ciLow": 0.3305,
+        "ciHigh": 0.3451,
+        "min": 0.333,
+        "max": 0.348
+      },
+      "txPerSecond": {
+        "n": 5,
+        "mean": 296.1,
+        "sd": 5.06,
+        "ci95": 6.29,
+        "ciLow": 289.82,
+        "ciHigh": 302.39,
+        "min": 287.36,
+        "max": 300.3
+      }
     },
     {
       "batchSize": 500,
-      "elapsedSeconds": 1.674,
-      "txPerSecond": 298.6857825567503
+      "repetitions": 5,
+      "elapsedSeconds": {
+        "n": 5,
+        "mean": 1.6204,
+        "sd": 0.0099,
+        "ci95": 0.0123,
+        "ciLow": 1.6081,
+        "ciHigh": 1.6327,
+        "min": 1.611,
+        "max": 1.636
+      },
+      "txPerSecond": {
+        "n": 5,
+        "mean": 308.58,
+        "sd": 1.89,
+        "ci95": 2.34,
+        "ciLow": 306.23,
+        "ciHigh": 310.92,
+        "min": 305.62,
+        "max": 310.37
+      }
     }
   ]
 }

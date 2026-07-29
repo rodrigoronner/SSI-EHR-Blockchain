@@ -5,6 +5,7 @@ const { createVerifiableCredentialJwt, verifyCredential } = require("did-jwt-vc"
 const { loadDeployment, getProvider, getActors } = require("./lib/network");
 const { buildResolver } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
+const { summarize, formatCi } = require("./lib/stats");
 
 // Off-chain latency numbers to go with the on-chain ones. No blockchain
 // transaction is involved here, so none of this costs gas.
@@ -16,30 +17,22 @@ const { makeEthrDid } = require("./lib/did");
 // timed separately from the IPFS calls so each stage can be reported on its
 // own rather than folded into one number.
 
-const VC_TRIALS = 10;
+const VC_TRIALS = 30;
 
-// Trial counts taper as documents grow: the large sizes are slow enough
-// that their variance is already small, and every trial holds another copy
-// in the in-memory blockstore.
+// Trial counts taper as documents grow, since every trial keeps another copy
+// of the ciphertext in the in-memory blockstore. They are kept at 10 even at
+// the largest size so that a confidence interval is still meaningful: below
+// that, Student's t widens sharply (4.303 at n = 3 against 2.262 at n = 10)
+// and the interval says more about the sample size than about the system.
+// Run with --max-old-space-size=4096; the 50 MB row alone holds ~500 MB.
 const SIZES = [
-  { label: "80 B", bytes: 80, trials: 10 },
-  { label: "10 KB", bytes: 10 * 1024, trials: 10 },
-  { label: "100 KB", bytes: 100 * 1024, trials: 10 },
-  { label: "1 MB", bytes: 1024 * 1024, trials: 10 },
-  { label: "10 MB", bytes: 10 * 1024 * 1024, trials: 5 },
-  { label: "50 MB", bytes: 50 * 1024 * 1024, trials: 3 },
+  { label: "80 B", bytes: 80, trials: 30 },
+  { label: "10 KB", bytes: 10 * 1024, trials: 30 },
+  { label: "100 KB", bytes: 100 * 1024, trials: 30 },
+  { label: "1 MB", bytes: 1024 * 1024, trials: 20 },
+  { label: "10 MB", bytes: 10 * 1024 * 1024, trials: 10 },
+  { label: "50 MB", bytes: 50 * 1024 * 1024, trials: 10 },
 ];
-
-function summarizeMs(samplesMs) {
-  const sorted = [...samplesMs].sort((a, b) => a - b);
-  const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;
-  return {
-    n: sorted.length,
-    meanMs: Number(mean.toFixed(3)),
-    minMs: Number(sorted[0].toFixed(3)),
-    maxMs: Number(sorted[sorted.length - 1].toFixed(3)),
-  };
-}
 
 function encrypt(plaintext, key) {
   const iv = crypto.randomBytes(12);
@@ -117,25 +110,36 @@ async function benchmarkIpfs() {
       }
     }
 
-    const store = summarizeMs(storeMs);
-    const retrieve = summarizeMs(retrieveMs);
+    const encryptStats = summarize(encryptMs);
+    const store = summarize(storeMs);
+    const retrieve = summarize(retrieveMs);
+    const decryptStats = summarize(decryptMs);
+
+    // The round trip is a sum of four measured stages, so its uncertainty is
+    // not the sum of theirs. Summing per-stage confidence intervals would
+    // overstate it, since the stages do not deviate in lockstep. We instead
+    // total the four stages within each trial and summarise that directly.
+    const roundTripMs = encryptMs.map((_, i) => encryptMs[i] + storeMs[i] + retrieveMs[i] + decryptMs[i]);
+
     bySize.push({
       label: size.label,
       bytes: size.bytes,
       trials: size.trials,
-      encrypt: summarizeMs(encryptMs),
+      encrypt: encryptStats,
       store,
       retrieve,
-      decrypt: summarizeMs(decryptMs),
+      decrypt: decryptStats,
+      roundTrip: summarize(roundTripMs),
       // Sustained throughput is the more meaningful figure once documents
       // are large enough for the fixed per-call overhead to stop dominating.
-      storeMbPerS: Number((size.bytes / 1048576 / (store.meanMs / 1000)).toFixed(2)),
-      retrieveMbPerS: Number((size.bytes / 1048576 / (retrieve.meanMs / 1000)).toFixed(2)),
+      // Derived from the mean, so no interval is attached to it.
+      storeMbPerS: Number((size.bytes / 1048576 / (store.mean / 1000)).toFixed(2)),
+      retrieveMbPerS: Number((size.bytes / 1048576 / (retrieve.mean / 1000)).toFixed(2)),
     });
 
     console.log(
-      `${size.label.padEnd(7)} (n=${size.trials})  encrypt=${summarizeMs(encryptMs).meanMs}ms` +
-        `  store=${store.meanMs}ms  retrieve=${retrieve.meanMs}ms  decrypt=${summarizeMs(decryptMs).meanMs}ms`
+      `${size.label.padEnd(7)} (n=${size.trials})  encrypt=${formatCi(encryptStats)}` +
+        `  store=${formatCi(store)}  retrieve=${formatCi(retrieve)}  decrypt=${formatCi(decryptStats)}`
     );
   }
 
@@ -185,29 +189,35 @@ async function benchmarkVc() {
     verifyMs.push(performance.now() - t1);
   }
 
-  return { sign: summarizeMs(signMs), verify: summarizeMs(verifyMs) };
+  return { sign: summarize(signMs), verify: summarize(verifyMs) };
 }
 
 async function main() {
   console.log("\n=== Off-chain Performance: IPFS encrypt/store/retrieve/decrypt by document size ===");
+  console.log("(mean +/- half-width of the 95% confidence interval, Student's t)\n");
   const ipfs = await benchmarkIpfs();
 
   console.log(`\n=== Off-chain Performance: VC sign/verify (n=${VC_TRIALS}) ===`);
   const vc = await benchmarkVc();
-  console.log(`sign     mean=${vc.sign.meanMs}ms  min=${vc.sign.minMs}ms  max=${vc.sign.maxMs}ms`);
-  console.log(`verify   mean=${vc.verify.meanMs}ms  min=${vc.verify.minMs}ms  max=${vc.verify.maxMs}ms`);
+  console.log(`sign     ${formatCi(vc.sign)}   [min ${vc.sign.min}, max ${vc.sign.max}]`);
+  console.log(`verify   ${formatCi(vc.verify)}   [min ${vc.verify.min}, max ${vc.verify.max}]`);
 
-  const report = { vcTrials: VC_TRIALS, ipfs, vc };
+  const report = { vcTrials: VC_TRIALS, confidenceLevel: 0.95, ipfs, vc };
   fs.writeFileSync(
     path.join(__dirname, "..", "results", "offchain-performance.json"),
     JSON.stringify(report, null, 2) + "\n"
   );
 
-  const csvLines = ["bytes,label,trials,encrypt_ms,store_ms,retrieve_ms,decrypt_ms,store_mb_per_s,retrieve_mb_per_s"];
+  const csvLines = [
+    "bytes,label,n,encrypt_ms,encrypt_ci95,store_ms,store_ci95,retrieve_ms,retrieve_ci95," +
+      "decrypt_ms,decrypt_ci95,round_trip_ms,round_trip_ci95,store_mb_per_s,retrieve_mb_per_s",
+  ];
   for (const row of ipfs.bySize) {
     csvLines.push(
-      `${row.bytes},${row.label},${row.trials},${row.encrypt.meanMs},${row.store.meanMs},` +
-        `${row.retrieve.meanMs},${row.decrypt.meanMs},${row.storeMbPerS},${row.retrieveMbPerS}`
+      `${row.bytes},${row.label},${row.trials},${row.encrypt.mean},${row.encrypt.ci95},` +
+        `${row.store.mean},${row.store.ci95},${row.retrieve.mean},${row.retrieve.ci95},` +
+        `${row.decrypt.mean},${row.decrypt.ci95},${row.roundTrip.mean},${row.roundTrip.ci95},` +
+        `${row.storeMbPerS},${row.retrieveMbPerS}`
     );
   }
   fs.writeFileSync(path.join(__dirname, "..", "results", "offchain-performance.csv"), csvLines.join("\n") + "\n");

@@ -1,96 +1,175 @@
 {
-  "vcTrials": 10,
+  "vcTrials": 30,
+  "confidenceLevel": 0.95,
   "ipfs": {
     "bySize": [
       {
         "label": "80 B",
         "bytes": 80,
-        "trials": 10,
+        "trials": 30,
         "encrypt": {
-          "n": 10,
-          "meanMs": 0.009,
-          "minMs": 0.004,
-          "maxMs": 0.017
+          "n": 30,
+          "mean": 0.006,
+          "sd": 0.005,
+          "ci95": 0.002,
+          "ciLow": 0.005,
+          "ciHigh": 0.008,
+          "min": 0.003,
+          "max": 0.02
         },
         "store": {
-          "n": 10,
-          "meanMs": 0.098,
-          "minMs": 0.027,
-          "maxMs": 0.304
+          "n": 30,
+          "mean": 0.05,
+          "sd": 0.059,
+          "ci95": 0.022,
+          "ciLow": 0.028,
+          "ciHigh": 0.072,
+          "min": 0.021,
+          "max": 0.286
         },
         "retrieve": {
-          "n": 10,
-          "meanMs": 0.206,
-          "minMs": 0.023,
-          "maxMs": 1.563
+          "n": 30,
+          "mean": 0.083,
+          "sd": 0.278,
+          "ci95": 0.104,
+          "ciLow": -0.021,
+          "ciHigh": 0.187,
+          "min": 0.016,
+          "max": 1.548
         },
         "decrypt": {
-          "n": 10,
-          "meanMs": 0.014,
-          "minMs": 0.004,
-          "maxMs": 0.05
+          "n": 30,
+          "mean": 0.006,
+          "sd": 0.008,
+          "ci95": 0.003,
+          "ciLow": 0.003,
+          "ciHigh": 0.009,
+          "min": 0.003,
+          "max": 0.038
         },
-        "storeMbPerS": 0.78,
-        "retrieveMbPerS": 0.37
+        "roundTrip": {
+          "n": 30,
+          "mean": 0.146,
+          "sd": 0.315,
+          "ci95": 0.118,
+          "ciLow": 0.028,
+          "ciHigh": 0.264,
+          "min": 0.045,
+          "max": 1.752
+        },
+        "storeMbPerS": 1.53,
+        "retrieveMbPerS": 0.92
       },
       {
         "label": "10 KB",
         "bytes": 10240,
-        "trials": 10,
+        "trials": 30,
         "encrypt": {
-          "n": 10,
-          "meanMs": 0.008,
-          "minMs": 0.007,
-          "maxMs": 0.011
+          "n": 30,
+          "mean": 0.009,
+          "sd": 0.004,
+          "ci95": 0.001,
+          "ciLow": 0.008,
+          "ciHigh": 0.011,
+          "min": 0.007,
+          "max": 0.025
         },
         "store": {
-          "n": 10,
-          "meanMs": 0.029,
-          "minMs": 0.026,
-          "maxMs": 0.033
+          "n": 30,
+          "mean": 0.025,
+          "sd": 0.002,
+          "ci95": 0.001,
+          "ciLow": 0.025,
+          "ciHigh": 0.026,
+          "min": 0.024,
+          "max": 0.034
         },
         "retrieve": {
-          "n": 10,
-          "meanMs": 0.033,
-          "minMs": 0.022,
-          "maxMs": 0.085
+          "n": 30,
+          "mean": 0.02,
+          "sd": 0.008,
+          "ci95": 0.003,
+          "ciLow": 0.018,
+          "ciHigh": 0.023,
+          "min": 0.017,
+          "max": 0.059
         },
         "decrypt": {
-          "n": 10,
-          "meanMs": 0.006,
-          "minMs": 0.005,
-          "maxMs": 0.007
+          "n": 30,
+          "mean": 0.006,
+          "sd": 0.002,
+          "ci95": 0.001,
+          "ciLow": 0.005,
+          "ciHigh": 0.007,
+          "min": 0.004,
+          "max": 0.014
         },
-        "storeMbPerS": 336.75,
-        "retrieveMbPerS": 295.93
+        "roundTrip": {
+          "n": 30,
+          "mean": 0.061,
+          "sd": 0.011,
+          "ci95": 0.004,
+          "ciLow": 0.057,
+          "ciHigh": 0.065,
+          "min": 0.053,
+          "max": 0.105
+        },
+        "storeMbPerS": 390.63,
+        "retrieveMbPerS": 488.28
       },
       {
         "label": "100 KB",
         "bytes": 102400,
-        "trials": 10,
+        "trials": 30,
         "encrypt": {
-          "n": 10,
-          "meanMs": 0.029,
-          "minMs": 0.023,
-          "maxMs": 0.044
+          "n": 30,
+          "mean": 0.032,
+          "sd": 0.008,
+          "ci95": 0.003,
+          "ciLow": 0.029,
+          "ciHigh": 0.034,
+          "min": 0.024,
+          "max": 0.058
         },
         "store": {
-          "n": 10,
-          "meanMs": 0.054,
-          "minMs": 0.052,
-          "maxMs": 0.066
+          "n": 30,
+          "mean": 0.054,
+          "sd": 0.002,
+          "ci95": 0.001,
+          "ciLow": 0.053,
+          "ciHigh": 0.055,
+          "min": 0.051,
+          "max": 0.061
         },
         "retrieve": {
-          "n": 10,
-          "meanMs": 0.025,
-          "minMs": 0.02,
-          "maxMs": 0.036
+          "n": 30,
+          "mean": 0.025,
+          "sd": 0.005,
+          "ci95": 0.002,
+          "ciLow": 0.023,
+          "ciHigh": 0.027,
+          "min": 0.02,
+          "max": 0.04
         },
         "decrypt": {
-          "n": 10,
-          "meanMs": 0.027,
-          "minMs": 0.022,
-          "maxMs": 0.05
+          "n": 30,
+          "mean": 0.027,
+          "sd": 0.004,
+          "ci95": 0.002,
+          "ciLow": 0.026,
+          "ciHigh": 0.029,
+          "min": 0.023,
+          "max": 0.039
+        },
+        "roundTrip": {
+          "n": 30,
+          "mean": 0.137,
+          "sd": 0.014,
+          "ci95": 0.005,
+          "ciLow": 0.132,
+          "ciHigh": 0.143,
+          "min": 0.119,
+          "max": 0.171
         },
         "storeMbPerS": 1808.45,
         "retrieveMbPerS": 3906.25
@@ -98,110 +177,196 @@
       {
         "label": "1 MB",
         "bytes": 1048576,
-        "trials": 10,
+        "trials": 20,
         "encrypt": {
-          "n": 10,
-          "meanMs": 0.227,
-          "minMs": 0.183,
-          "maxMs": 0.31
+          "n": 20,
+          "mean": 0.242,
+          "sd": 0.05,
+          "ci95": 0.023,
+          "ciLow": 0.219,
+          "ciHigh": 0.265,
+          "min": 0.185,
+          "max": 0.33
         },
         "store": {
-          "n": 10,
-          "meanMs": 0.416,
-          "minMs": 0.382,
-          "maxMs": 0.472
+          "n": 20,
+          "mean": 0.412,
+          "sd": 0.082,
+          "ci95": 0.038,
+          "ciLow": 0.374,
+          "ciHigh": 0.451,
+          "min": 0.37,
+          "max": 0.739
         },
         "retrieve": {
-          "n": 10,
-          "meanMs": 0.228,
-          "minMs": 0.123,
-          "maxMs": 0.318
+          "n": 20,
+          "mean": 0.178,
+          "sd": 0.076,
+          "ci95": 0.035,
+          "ciLow": 0.143,
+          "ciHigh": 0.213,
+          "min": 0.114,
+          "max": 0.338
         },
         "decrypt": {
-          "n": 10,
-          "meanMs": 0.268,
-          "minMs": 0.162,
-          "maxMs": 0.587
+          "n": 20,
+          "mean": 0.262,
+          "sd": 0.122,
+          "ci95": 0.057,
+          "ciLow": 0.205,
+          "ciHigh": 0.319,
+          "min": 0.178,
+          "max": 0.622
         },
-        "storeMbPerS": 2403.85,
-        "retrieveMbPerS": 4385.96
+        "roundTrip": {
+          "n": 20,
+          "mean": 1.094,
+          "sd": 0.237,
+          "ci95": 0.111,
+          "ciLow": 0.983,
+          "ciHigh": 1.205,
+          "min": 0.875,
+          "max": 1.763
+        },
+        "storeMbPerS": 2427.18,
+        "retrieveMbPerS": 5617.98
       },
       {
         "label": "10 MB",
         "bytes": 10485760,
-        "trials": 5,
+        "trials": 10,
         "encrypt": {
-          "n": 5,
-          "meanMs": 3.222,
-          "minMs": 1.996,
-          "maxMs": 4.878
+          "n": 10,
+          "mean": 2.713,
+          "sd": 1.077,
+          "ci95": 0.771,
+          "ciLow": 1.942,
+          "ciHigh": 3.484,
+          "min": 1.929,
+          "max": 5.202
         },
         "store": {
-          "n": 5,
-          "meanMs": 4.35,
-          "minMs": 3.262,
-          "maxMs": 5.201
+          "n": 10,
+          "mean": 4.525,
+          "sd": 0.629,
+          "ci95": 0.45,
+          "ciLow": 4.075,
+          "ciHigh": 4.975,
+          "min": 3.348,
+          "max": 5.008
         },
         "retrieve": {
-          "n": 5,
-          "meanMs": 0.98,
-          "minMs": 0.715,
-          "maxMs": 1.22
+          "n": 10,
+          "mean": 0.856,
+          "sd": 0.301,
+          "ci95": 0.216,
+          "ciLow": 0.64,
+          "ciHigh": 1.071,
+          "min": 0.679,
+          "max": 1.575
         },
         "decrypt": {
-          "n": 5,
-          "meanMs": 2.083,
-          "minMs": 1.606,
-          "maxMs": 2.476
+          "n": 10,
+          "mean": 2.053,
+          "sd": 0.5,
+          "ci95": 0.357,
+          "ciLow": 1.696,
+          "ciHigh": 2.41,
+          "min": 1.667,
+          "max": 3.219
         },
-        "storeMbPerS": 2298.85,
-        "retrieveMbPerS": 10204.08
+        "roundTrip": {
+          "n": 10,
+          "mean": 10.147,
+          "sd": 1.234,
+          "ci95": 0.883,
+          "ciLow": 9.264,
+          "ciHigh": 11.03,
+          "min": 9.045,
+          "max": 13.042
+        },
+        "storeMbPerS": 2209.94,
+        "retrieveMbPerS": 11682.24
       },
       {
         "label": "50 MB",
         "bytes": 52428800,
-        "trials": 3,
+        "trials": 10,
         "encrypt": {
-          "n": 3,
-          "meanMs": 21.607,
-          "minMs": 19.551,
-          "maxMs": 24.783
+          "n": 10,
+          "mean": 14.881,
+          "sd": 4.368,
+          "ci95": 3.124,
+          "ciLow": 11.756,
+          "ciHigh": 18.005,
+          "min": 10.431,
+          "max": 23.467
         },
         "store": {
-          "n": 3,
-          "meanMs": 18.957,
-          "minMs": 18.063,
-          "maxMs": 20.446
+          "n": 10,
+          "mean": 18.169,
+          "sd": 0.418,
+          "ci95": 0.299,
+          "ciLow": 17.87,
+          "ciHigh": 18.468,
+          "min": 17.735,
+          "max": 19.184
         },
         "retrieve": {
-          "n": 3,
-          "meanMs": 8.533,
-          "minMs": 4.948,
-          "maxMs": 13.215
+          "n": 10,
+          "mean": 5.74,
+          "sd": 3.011,
+          "ci95": 2.154,
+          "ciLow": 3.586,
+          "ciHigh": 7.894,
+          "min": 4.081,
+          "max": 13.918
         },
         "decrypt": {
-          "n": 3,
-          "meanMs": 15.046,
-          "minMs": 10.203,
-          "maxMs": 17.615
+          "n": 10,
+          "mean": 15.68,
+          "sd": 3.346,
+          "ci95": 2.393,
+          "ciLow": 13.287,
+          "ciHigh": 18.074,
+          "min": 10.296,
+          "max": 21.832
         },
-        "storeMbPerS": 2637.55,
-        "retrieveMbPerS": 5859.6
+        "roundTrip": {
+          "n": 10,
+          "mean": 54.47,
+          "sd": 7.89,
+          "ci95": 5.644,
+          "ciLow": 48.826,
+          "ciHigh": 60.114,
+          "min": 47.045,
+          "max": 73.758
+        },
+        "storeMbPerS": 2751.94,
+        "retrieveMbPerS": 8710.8
       }
     ]
   },
   "vc": {
     "sign": {
-      "n": 10,
-      "meanMs": 0.497,
-      "minMs": 0.409,
-      "maxMs": 0.7
+      "n": 30,
+      "mean": 0.583,
+      "sd": 0.113,
+      "ci95": 0.042,
+      "ciLow": 0.541,
+      "ciHigh": 0.625,
+      "min": 0.41,
+      "max": 0.921
     },
     "verify": {
-      "n": 10,
-      "meanMs": 25.496,
-      "minMs": 21.634,
-      "maxMs": 27.445
+      "n": 30,
+      "mean": 26.72,
+      "sd": 1.753,
+      "ci95": 0.654,
+      "ciLow": 26.066,
+      "ciHigh": 27.375,
+      "min": 21.409,
+      "max": 31.698
     }
   }
 }

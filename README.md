@@ -81,7 +81,7 @@ npm run ipfs-demo    # encrypt a document, store it on IPFS, anchor its CID on-c
 npm run recovery-demo # encrypted keystore + guardian-based social recovery
 ```
 
-Each demo shares state with the others through the same deployed contract, so if you run several back to back and something looks off (an identity's owner already changed, for instance), redeploy first with `npm run deploy`.
+**Redeploy between runs.** Every script shares state through the same deployed contract, and running them back to back without `npm run deploy` in between will silently distort results or fail outright. Two concrete cases: the cost benchmark calls `changeOwner`, which hands ownership of its test identities to throwaway addresses, so a later benchmark trying to write to those identities reverts with `not authorized`; and any script that emits attribute events makes subsequent DID resolution slower, because resolving a DID Document means walking that identity's event log. In one measurement, running the throughput benchmark first inflated Verifiable Credential verification from 26.7 ms to 37.3 ms.
 
 To run the automated test suite instead (self-contained, no local node required):
 

@@ -60,7 +60,7 @@ def make_cost_figure():
     ax.set_yticks(list(y_pos))
     ax.set_yticklabels([labels_map[op] for op in ops])
     ax.invert_yaxis()
-    ax.set_xlabel("Gas used (mean of 5 trials)")
+    ax.set_xlabel("Gas used (mean of 5 trials, min–max range)")
     ax.set_title(
         f"EHRRegistry gas cost per operation\n"
         f"(@ {data['assumptions']['gasPriceGwei']} gwei, ETH = "
@@ -92,24 +92,29 @@ def make_performance_figure():
         ("interval2000ms", "2 s\ninterval"),
         ("interval4000ms", "4 s\ninterval"),
     ]
-    p50 = [data["latency"][k]["p50Ms"] for k, _ in modes]
-    p95 = [data["latency"][k]["p95Ms"] for k, _ in modes]
+    means = [data["latency"][k]["mean"] for k, _ in modes]
+    ci = [data["latency"][k]["ci95"] for k, _ in modes]
+    p95 = [data["latency"][k]["p95"] for k, _ in modes]
     x = range(len(modes))
     width = 0.35
     ax = axes[0]
-    ax.bar([i - width / 2 for i in x], p50, width=width, label="p50", color=BLUE)
+    ax.bar(
+        [i - width / 2 for i in x], means, width=width, yerr=ci, capsize=3,
+        label="mean (95% CI)", color=BLUE,
+    )
     ax.bar([i + width / 2 for i in x], p95, width=width, label="p95", color=GREY)
     ax.set_xticks(list(x))
     ax.set_xticklabels([label for _, label in modes])
     ax.set_ylabel("Confirmation latency (ms)")
     ax.set_title("(a) On-chain latency vs. mining cadence")
-    ax.legend(frameon=False, fontsize=9)
+    ax.legend(frameon=False, fontsize=8)
 
     # (b) throughput vs batch size
     ax = axes[1]
     batch_sizes = [row["batchSize"] for row in data["throughput"]]
-    tps = [row["txPerSecond"] for row in data["throughput"]]
-    ax.plot(batch_sizes, tps, marker="o", color=BLUE)
+    tps = [row["txPerSecond"]["mean"] for row in data["throughput"]]
+    tps_ci = [row["txPerSecond"]["ci95"] for row in data["throughput"]]
+    ax.errorbar(batch_sizes, tps, yerr=tps_ci, marker="o", capsize=3, color=BLUE)
     ax.set_xscale("log")
     ax.set_xlabel("Concurrent batch size")
     ax.set_ylabel("Throughput (tx/s)")
@@ -128,14 +133,17 @@ def make_performance_figure():
         ("decrypt", "decrypt", BLUE, "v", "--"),
     ]
     for key, label, color, marker, style in stages:
-        ax.plot(
+        ax.errorbar(
             sizes,
-            [row[key]["meanMs"] for row in by_size],
+            [row[key]["mean"] for row in by_size],
+            yerr=[row[key]["ci95"] for row in by_size],
             marker=marker,
             markersize=4,
             linestyle=style,
             color=color,
             label=label,
+            capsize=2,
+            elinewidth=0.8,
         )
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -149,12 +157,13 @@ def make_performance_figure():
     # (d) VC sign/verify latency
     ax = axes[3]
     vc_labels = ["sign", "verify"]
-    vc_means = [offchain["vc"]["sign"]["meanMs"], offchain["vc"]["verify"]["meanMs"]]
-    ax.bar(vc_labels, vc_means, color=BLUE, width=0.5)
+    vc_means = [offchain["vc"]["sign"]["mean"], offchain["vc"]["verify"]["mean"]]
+    vc_ci = [offchain["vc"]["sign"]["ci95"], offchain["vc"]["verify"]["ci95"]]
+    ax.bar(vc_labels, vc_means, yerr=vc_ci, capsize=4, color=BLUE, width=0.5)
     ax.set_ylabel("Latency (ms)")
     ax.set_title("(d) VC sign/verify latency")
-    for i, m in enumerate(vc_means):
-        ax.text(i, m, f"{m:.2f} ms", ha="center", va="bottom", fontsize=9, color=GREY)
+    for i, (m, e) in enumerate(zip(vc_means, vc_ci)):
+        ax.text(i, m + e, f"{m:.2f} ms", ha="center", va="bottom", fontsize=9, color=GREY)
 
     fig.tight_layout(h_pad=2.0)
     out = os.path.join(FIGDIR, "performance-evaluation.pdf")
