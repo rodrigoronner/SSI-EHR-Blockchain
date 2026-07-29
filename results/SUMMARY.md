@@ -61,16 +61,18 @@ Each stage timed separately, from a short textual report to an imaging-sized stu
 
 | Size | Trials | Encrypt | Store (IPFS) | Retrieve (IPFS) | Decrypt | Round trip |
 |---|---|---|---|---|---|---|
-| 80 B | 10 | 0.025 ms | 0.160 ms | 0.097 ms | 0.013 ms | 0.30 ms |
-| 10 KB | 10 | 0.009 ms | 0.038 ms | 0.030 ms | 0.008 ms | 0.08 ms |
-| 100 KB | 10 | 0.037 ms | 0.061 ms | 0.033 ms | 0.032 ms | 0.16 ms |
-| 1 MB | 10 | 0.305 ms | 0.618 ms | 0.493 ms | 0.301 ms | 1.72 ms |
-| 10 MB | 5 | 5.280 ms | 4.680 ms | 2.087 ms | 2.845 ms | 14.89 ms |
-| 50 MB | 3 | 43.602 ms | 19.484 ms | 9.037 ms | 15.425 ms | 87.55 ms |
+| 80 B | 10 | 0.009 ms | 0.098 ms | 0.206 ms | 0.014 ms | 0.33 ms |
+| 10 KB | 10 | 0.008 ms | 0.029 ms | 0.033 ms | 0.006 ms | 0.08 ms |
+| 100 KB | 10 | 0.029 ms | 0.054 ms | 0.025 ms | 0.027 ms | 0.14 ms |
+| 1 MB | 10 | 0.227 ms | 0.416 ms | 0.228 ms | 0.268 ms | 1.14 ms |
+| 10 MB | 5 | 3.222 ms | 4.350 ms | 0.980 ms | 2.083 ms | 10.63 ms |
+| 50 MB | 3 | 21.607 ms | 18.957 ms | 8.533 ms | 15.046 ms | 64.14 ms |
 
-Below roughly 100 KB, fixed per-call overhead dominates and size barely matters. Above 1 MB every stage scales linearly, and the balance shifts: at 50 MB, encryption and decryption together account for two thirds of the round trip, exceeding both IPFS stages. At imaging scale the bottleneck is the cryptographic layer, not the content-addressed store.
+Up to roughly 100 KB the round trip stays under 0.35 ms and is dominated by fixed per-call overhead, so size barely matters. Above 1 MB every stage scales linearly, and the balance shifts: at 50 MB, encryption plus decryption (36.7 ms) exceed both IPFS stages combined (27.5 ms). At imaging scale the bottleneck is the cryptographic layer, not the content-addressed store.
 
-Sustained IPFS throughput at 50 MB was 2.57 GB/s storing and 5.53 GB/s retrieving. This is an in-process node with no network hop, so treat these as a lower bound on latency; a distributed IPFS deployment would be governed by bandwidth and peer availability.
+Sustained IPFS throughput at 50 MB was 2.58 GB/s storing and 5.72 GB/s retrieving (binary units, matching the MB/s figures in `offchain-performance.csv`). This is an in-process node with no network hop, so these are bounded by memory bandwidth, not a network link — treat them as a lower bound on latency; a distributed IPFS deployment would be governed by bandwidth and peer availability.
+
+**Watch the measurement order at small sizes.** Whichever size runs first absorbs residual initialisation. With only a light warm-up, measuring 80 B first rather than last inflated its store time about sevenfold (0.148 ms vs 0.021 ms), which inverts the low end of the curve. The benchmark now runs five untimed warm-up iterations at 1 MB before timing anything. Sub-millisecond values here remain indicative rather than precise.
 
 ### 2.4 Verifiable Credentials
 
@@ -78,8 +80,8 @@ Sustained IPFS throughput at 50 MB was 2.57 GB/s storing and 5.53 GB/s retrievin
 
 | Operation | Mean | Min | Max |
 |---|---|---|---|
-| Sign | 0.53 ms | 0.31 ms | 1.38 ms |
-| Verify | 26.42 ms | 22.13 ms | 31.15 ms |
+| Sign | 0.50 ms | 0.41 ms | 0.70 ms |
+| Verify | 25.50 ms | 21.63 ms | 27.45 ms |
 
 Verification is the slower side because it additionally resolves the issuer's DID Document from the registry's event log to obtain the verification key; signing uses a key already held locally. Neither depends on document size.
 

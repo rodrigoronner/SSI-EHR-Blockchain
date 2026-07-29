@@ -8,30 +8,30 @@
         "trials": 10,
         "encrypt": {
           "n": 10,
-          "meanMs": 0.025,
-          "minMs": 0.005,
-          "maxMs": 0.109
+          "meanMs": 0.009,
+          "minMs": 0.004,
+          "maxMs": 0.017
         },
         "store": {
           "n": 10,
-          "meanMs": 0.16,
-          "minMs": 0.048,
-          "maxMs": 0.308
+          "meanMs": 0.098,
+          "minMs": 0.027,
+          "maxMs": 0.304
         },
         "retrieve": {
           "n": 10,
-          "meanMs": 0.097,
-          "minMs": 0.036,
-          "maxMs": 0.205
+          "meanMs": 0.206,
+          "minMs": 0.023,
+          "maxMs": 1.563
         },
         "decrypt": {
           "n": 10,
-          "meanMs": 0.013,
-          "minMs": 0.005,
-          "maxMs": 0.035
+          "meanMs": 0.014,
+          "minMs": 0.004,
+          "maxMs": 0.05
         },
-        "storeMbPerS": 0.48,
-        "retrieveMbPerS": 0.79
+        "storeMbPerS": 0.78,
+        "retrieveMbPerS": 0.37
       },
       {
         "label": "10 KB",
@@ -39,30 +39,30 @@
         "trials": 10,
         "encrypt": {
           "n": 10,
-          "meanMs": 0.009,
+          "meanMs": 0.008,
           "minMs": 0.007,
-          "maxMs": 0.012
+          "maxMs": 0.011
         },
         "store": {
           "n": 10,
-          "meanMs": 0.038,
-          "minMs": 0.029,
-          "maxMs": 0.067
+          "meanMs": 0.029,
+          "minMs": 0.026,
+          "maxMs": 0.033
         },
         "retrieve": {
           "n": 10,
-          "meanMs": 0.03,
-          "minMs": 0.023,
-          "maxMs": 0.063
+          "meanMs": 0.033,
+          "minMs": 0.022,
+          "maxMs": 0.085
         },
         "decrypt": {
           "n": 10,
-          "meanMs": 0.008,
-          "minMs": 0.006,
-          "maxMs": 0.011
+          "meanMs": 0.006,
+          "minMs": 0.005,
+          "maxMs": 0.007
         },
-        "storeMbPerS": 256.99,
-        "retrieveMbPerS": 325.52
+        "storeMbPerS": 336.75,
+        "retrieveMbPerS": 295.93
       },
       {
         "label": "100 KB",
@@ -70,30 +70,30 @@
         "trials": 10,
         "encrypt": {
           "n": 10,
-          "meanMs": 0.037,
-          "minMs": 0.025,
-          "maxMs": 0.049
+          "meanMs": 0.029,
+          "minMs": 0.023,
+          "maxMs": 0.044
         },
         "store": {
           "n": 10,
-          "meanMs": 0.061,
-          "minMs": 0.054,
-          "maxMs": 0.085
+          "meanMs": 0.054,
+          "minMs": 0.052,
+          "maxMs": 0.066
         },
         "retrieve": {
           "n": 10,
-          "meanMs": 0.033,
-          "minMs": 0.026,
-          "maxMs": 0.04
+          "meanMs": 0.025,
+          "minMs": 0.02,
+          "maxMs": 0.036
         },
         "decrypt": {
           "n": 10,
-          "meanMs": 0.032,
-          "minMs": 0.023,
-          "maxMs": 0.062
+          "meanMs": 0.027,
+          "minMs": 0.022,
+          "maxMs": 0.05
         },
-        "storeMbPerS": 1600.92,
-        "retrieveMbPerS": 2959.28
+        "storeMbPerS": 1808.45,
+        "retrieveMbPerS": 3906.25
       },
       {
         "label": "1 MB",
@@ -101,30 +101,30 @@
         "trials": 10,
         "encrypt": {
           "n": 10,
-          "meanMs": 0.305,
-          "minMs": 0.2,
-          "maxMs": 0.653
+          "meanMs": 0.227,
+          "minMs": 0.183,
+          "maxMs": 0.31
         },
         "store": {
           "n": 10,
-          "meanMs": 0.618,
-          "minMs": 0.392,
-          "maxMs": 1.522
+          "meanMs": 0.416,
+          "minMs": 0.382,
+          "maxMs": 0.472
         },
         "retrieve": {
           "n": 10,
-          "meanMs": 0.493,
-          "minMs": 0.149,
-          "maxMs": 1.576
+          "meanMs": 0.228,
+          "minMs": 0.123,
+          "maxMs": 0.318
         },
         "decrypt": {
           "n": 10,
-          "meanMs": 0.301,
-          "minMs": 0.189,
-          "maxMs": 0.739
+          "meanMs": 0.268,
+          "minMs": 0.162,
+          "maxMs": 0.587
         },
-        "storeMbPerS": 1618.12,
-        "retrieveMbPerS": 2028.4
+        "storeMbPerS": 2403.85,
+        "retrieveMbPerS": 4385.96
       },
       {
         "label": "10 MB",
@@ -132,30 +132,30 @@
         "trials": 5,
         "encrypt": {
           "n": 5,
-          "meanMs": 5.28,
-          "minMs": 2.151,
-          "maxMs": 8.015
+          "meanMs": 3.222,
+          "minMs": 1.996,
+          "maxMs": 4.878
         },
         "store": {
           "n": 5,
-          "meanMs": 4.68,
-          "minMs": 3.803,
-          "maxMs": 5.503
+          "meanMs": 4.35,
+          "minMs": 3.262,
+          "maxMs": 5.201
         },
         "retrieve": {
           "n": 5,
-          "meanMs": 2.087,
-          "minMs": 0.789,
-          "maxMs": 5.177
+          "meanMs": 0.98,
+          "minMs": 0.715,
+          "maxMs": 1.22
         },
         "decrypt": {
           "n": 5,
-          "meanMs": 2.845,
-          "minMs": 1.665,
-          "maxMs": 5.004
+          "meanMs": 2.083,
+          "minMs": 1.606,
+          "maxMs": 2.476
         },
-        "storeMbPerS": 2136.75,
-        "retrieveMbPerS": 4791.57
+        "storeMbPerS": 2298.85,
+        "retrieveMbPerS": 10204.08
       },
       {
         "label": "50 MB",
@@ -163,45 +163,45 @@
         "trials": 3,
         "encrypt": {
           "n": 3,
-          "meanMs": 43.602,
-          "minMs": 18.079,
-          "maxMs": 76.684
+          "meanMs": 21.607,
+          "minMs": 19.551,
+          "maxMs": 24.783
         },
         "store": {
           "n": 3,
-          "meanMs": 19.484,
-          "minMs": 17.936,
-          "maxMs": 22.488
+          "meanMs": 18.957,
+          "minMs": 18.063,
+          "maxMs": 20.446
         },
         "retrieve": {
           "n": 3,
-          "meanMs": 9.037,
-          "minMs": 7.312,
-          "maxMs": 11.868
+          "meanMs": 8.533,
+          "minMs": 4.948,
+          "maxMs": 13.215
         },
         "decrypt": {
           "n": 3,
-          "meanMs": 15.425,
-          "minMs": 12.367,
-          "maxMs": 18.151
+          "meanMs": 15.046,
+          "minMs": 10.203,
+          "maxMs": 17.615
         },
-        "storeMbPerS": 2566.21,
-        "retrieveMbPerS": 5532.81
+        "storeMbPerS": 2637.55,
+        "retrieveMbPerS": 5859.6
       }
     ]
   },
   "vc": {
     "sign": {
       "n": 10,
-      "meanMs": 0.532,
-      "minMs": 0.308,
-      "maxMs": 1.378
+      "meanMs": 0.497,
+      "minMs": 0.409,
+      "maxMs": 0.7
     },
     "verify": {
       "n": 10,
-      "meanMs": 26.421,
-      "minMs": 22.126,
-      "maxMs": 31.154
+      "meanMs": 25.496,
+      "minMs": 21.634,
+      "maxMs": 27.445
     }
   }
 }

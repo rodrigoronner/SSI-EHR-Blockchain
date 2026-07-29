@@ -68,10 +68,18 @@ async function benchmarkIpfs() {
 
   // Untimed warm-up, for the same reason as the VC benchmark below: without
   // it the first size measured absorbs Helia's one-off initialisation and
-  // reads as slower than the sizes above it.
-  {
-    const warmupCid = await heliaFs.addBytes(crypto.randomBytes(1024));
-    for await (const chunk of heliaFs.cat(warmupCid)) void chunk;
+  // reads as slower than the larger sizes after it, which inverts the curve
+  // at the low end. A single small warm-up is not enough to settle this;
+  // measuring 80 B first versus last differed by 7x until the warm-up below
+  // was extended to several iterations at a size large enough to exercise
+  // chunking, the blockstore, and the cipher paths.
+  for (let i = 0; i < 5; i++) {
+    const warmupKey = crypto.randomBytes(32);
+    const warmupBlob = encrypt(crypto.randomBytes(1024 * 1024), warmupKey);
+    const warmupCid = await heliaFs.addBytes(warmupBlob);
+    const warmupChunks = [];
+    for await (const chunk of heliaFs.cat(warmupCid)) warmupChunks.push(chunk);
+    decrypt(Buffer.concat(warmupChunks), warmupKey);
   }
 
   for (const size of SIZES) {
