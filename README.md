@@ -39,12 +39,53 @@ Patient / Physician / Hospital
 
 A guardian-recovery extension sits alongside the core registry: guardians are registered while the owner's key still works, and a threshold of them can later move a compromised or lost identity to a new address without ever needing the old key.
 
-## Stack
+## Tools
 
-- **Smart contract**: Solidity, `EHRRegistry.sol` — ERC-1056-compatible DID registry plus the guardian-recovery extension.
-- **Development and testing**: Hardhat, `@nomicfoundation/hardhat-toolbox`, ethers.js.
-- **DID / Verifiable Credentials**: `ethr-did`, `ethr-did-resolver`, `did-resolver`, `did-jwt`, `did-jwt-vc`.
-- **Off-chain storage**: `helia` + `@helia/unixfs` (an embeddable IPFS node — no external daemon to run), AES-256-GCM for client-side encryption.
+Every tool below is pinned to an exact version in `package.json` (Python/Matplotlib is the one exception, noted below), so a clone of this repo reproduces the same numbers reported in the paper.
+
+**Smart contract and chain**
+
+| Tool | Version | Role |
+|---|---|---|
+| Solidity | 0.8.24 (EVM target `paris`) | Language `EHRRegistry.sol` is written in. |
+| Hardhat | 2.29.0 | Local Ethereum node, compiler, test runner, and deployment tool — everything in this repo runs against a Hardhat network, not a public chain. |
+| `@nomicfoundation/hardhat-toolbox` | 5.0.0 | Bundle that wires ethers.js, Mocha/Chai, and the two helpers below into Hardhat. |
+| ethers.js | 6.17.0 | JavaScript client library: builds and signs transactions, reads contract state, and decodes events. |
+
+**DID and Verifiable Credentials** (implementing the W3C DID and VC standards)
+
+| Tool | Version | Role |
+|---|---|---|
+| `ethr-did` | 3.0.38 | Constructs `did:ethr` identities and provides the higher-level `addDelegate`/`setAttribute`/etc. calls the demo scripts use. |
+| `ethr-did-resolver` | 14.1.0 | Resolves a `did:ethr` identifier into a DID Document by replaying `EHRRegistry`'s event log. |
+| `did-resolver` | 5.0.1 | Generic, standards-compliant `Resolver` interface that `ethr-did-resolver` plugs into; what `did-jwt-vc` calls to look up an issuer's key. |
+| `did-jwt` | 8.0.18 | Low-level JWT signing and verification (ES256K-R) that Verifiable Credentials are built on. |
+| `did-jwt-vc` | 4.0.16 | Issues and verifies Verifiable Credentials per the W3C VC data model — the "EHR Operation" credentials in `scripts/issue-vc.js`. |
+
+**Off-chain storage**
+
+| Tool | Version | Role |
+|---|---|---|
+| `helia` | 7.1.2 | Embeddable IPFS node — no external daemon to run; this is what actually stores and retrieves the encrypted documents. |
+| `@helia/unixfs` | 8.0.5 | File-oriented `addBytes`/`cat` API on top of Helia. |
+| `multiformats` | 14.0.5 | Encodes/decodes the CIDs (content identifiers) IPFS and the registry's attributes both use. |
+| `uint8arrays` | 6.1.1 | Byte-array utilities shared by the IPFS and encryption code paths. |
+| Node.js `crypto` (built-in) | — | AES-256-GCM client-side encryption of documents before they ever reach IPFS. |
+
+**Testing**
+
+| Tool | Version | Role |
+|---|---|---|
+| Mocha / Chai | 11.7.6 / 4.5.0 | Test runner and assertions for the 33-test suite (via `hardhat-toolbox`). |
+| `@nomicfoundation/hardhat-chai-matchers` | 2.1.2 | Solidity-specific assertions — revert reasons, emitted events. |
+| `@nomicfoundation/hardhat-network-helpers` | 1.1.2 | Test fixtures and network snapshots between test cases. |
+
+**Runtime and figures**
+
+| Tool | Version | Role |
+|---|---|---|
+| Node.js | 22 | Runs every script, benchmark, and test in this repo. |
+| Python 3 + Matplotlib | 3.11.0 (not pinned) | `scripts/make_figures.py` turns the JSON results into the cost/performance figures used in the paper. Not part of `package.json` since it's the one non-Node tool here. |
 
 All dependency versions are pinned in `package.json` so results are reproducible on a given clone.
 
