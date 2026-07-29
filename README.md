@@ -45,7 +45,6 @@ A guardian-recovery extension sits alongside the core registry: guardians are re
 - **Development and testing**: Hardhat, `@nomicfoundation/hardhat-toolbox`, ethers.js.
 - **DID / Verifiable Credentials**: `ethr-did`, `ethr-did-resolver`, `did-resolver`, `did-jwt`, `did-jwt-vc`.
 - **Off-chain storage**: `helia` + `@helia/unixfs` (an embeddable IPFS node — no external daemon to run), AES-256-GCM for client-side encryption.
-- **Web dashboard**: Next.js, React, ethers.js, MetaMask — see [`web/`](web/) for a browser UI covering the same functionality described here.
 
 All dependency versions are pinned in `package.json` so results are reproducible on a given clone.
 
@@ -57,7 +56,6 @@ scripts/                    demos and benchmarks (see below)
 scripts/lib/                shared helpers: network/provider setup, DID resolution, keystore handling
 test/                       automated test suite (Hardhat + Mocha/Chai)
 results/                    measured cost, performance, and security results (JSON/CSV + write-ups)
-web/                        browser dashboard (Next.js + MetaMask)
 ```
 
 ## Getting started
@@ -90,8 +88,6 @@ To run the automated test suite instead (self-contained, no local node required)
 ```bash
 npm test
 ```
-
-And to try the browser dashboard, see [`web/README.md`](web/README.md).
 
 ## Results
 
