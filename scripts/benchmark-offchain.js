@@ -6,12 +6,9 @@ const { loadDeployment, getProvider, getActors } = require("./lib/network");
 const { buildResolver } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
 
-// Off-chain performance metrics that complement the on-chain latency/
-// throughput numbers: how long the framework's two off-chain building
-// blocks (IPFS storage and VC issuance/verification) take in wall-clock
-// time. Neither involves a blockchain transaction, so these are not gas
-// costs; they are the other half of the end-to-end latency a user actually
-// experiences (e.g., requesting a lab exam, Figure EHROperation).
+// Off-chain latency numbers to go with the on-chain ones: how long IPFS
+// storage and VC issuance/verification take in wall-clock time. No
+// blockchain transaction involved, so no gas cost either.
 
 const N_TRIALS = 10;
 const SAMPLE_RECORD = Buffer.from(

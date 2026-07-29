@@ -2,11 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { ethers } = require("ethers");
 
-// Local key storage: a password-encrypted "V3 keystore" JSON file, the same
-// format used by geth/MetaMask (PBKDF2/scrypt-derived key wrapping the raw
-// private key). This is the "how is the key stored" half of key management;
-// scripts/demo-guardian-recovery.js covers the "how is it recovered if truly
-// lost" half via on-chain guardian approval.
+// Password-encrypted V3 keystore, same format geth/MetaMask use. Covers key
+// storage; scripts/demo-guardian-recovery.js covers recovery if it's lost.
 
 const KEYSTORE_DIR = path.join(__dirname, "..", "..", "keystores");
 

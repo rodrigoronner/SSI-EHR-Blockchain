@@ -2,11 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const hre = require("hardhat");
 
-// Deploys EHRRegistry against whatever network Hardhat was invoked with
-// (intended usage: `npx hardhat run scripts/deploy.js --network localhost`,
-// pointed at a `npx hardhat node` instance) and writes the resulting address
-// to deployment.json so the plain-Node scripts (demo, VC, IPFS, benchmarks)
-// can pick it up without depending on the Hardhat runtime themselves.
+// Deploys EHRRegistry to whatever network Hardhat was invoked with
+// (`npx hardhat run scripts/deploy.js --network localhost`, against a
+// running `npx hardhat node`) and writes the address to deployment.json so
+// the plain-Node scripts can pick it up without depending on Hardhat.
 async function main() {
   const network = hre.network.name;
   const { chainId } = await hre.ethers.provider.getNetwork();

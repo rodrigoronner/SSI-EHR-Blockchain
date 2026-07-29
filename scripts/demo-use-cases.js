@@ -21,9 +21,7 @@ async function main() {
   const provider = getProvider(deployment);
   const actors = getActors(provider);
   const nextNonce = createNonceTracker(provider);
-  // A fresh EthrDidResolver per call avoids stale reads from whatever
-  // internal caching its underlying ethers Contract/Provider does when the
-  // same instance is reused across several sequential resolutions.
+  // Fresh resolver per call to avoid stale reads across sequential resolutions.
   const resolve = (did) => resolveAsOfChainHead(buildEthrResolver(deployment), did, provider);
 
   const patientDid = makeEthrDid(actors.patient, deployment);

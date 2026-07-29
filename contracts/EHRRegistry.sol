@@ -2,27 +2,15 @@
 pragma solidity ^0.8.24;
 
 /// @title EHRRegistry
-/// @notice On-chain registry backing the `did:ethr` method for the paper's SSI/EHR
-/// framework. Reproduces the ERC-1056 (EthereumDIDRegistry) interface so that
-/// standard `ethr-did` / `ethr-did-resolver` tooling can resolve DID Documents
-/// for identities (patients, physicians, hospitals) without any custom resolver.
-///
-/// Design notes (why it looks like this):
-/// - Attribute *values* are never written to storage, only emitted as events.
-///   The DID Document is reconstructed off-chain by a resolver that walks the
-///   event log backwards, starting from `changed[identity]` (the block number
-///   of the most recent change) and following each event's `previousChange`
-///   pointer. This is what keeps `setAttribute` (used, e.g., to publish a
-///   hospital's service endpoint or an IPFS document hash) cheap.
-/// - `identityOwner` defaults an identity's owner to its own address until an
-///   explicit `changeOwner` is recorded, matching the "DID is implicit from the
-///   Ethereum address" behaviour described for `did:ethr` in the paper.
-/// - Guardian-based social recovery (below) answers the "what if the private
-///   key is lost" question that plain `changeOwner` cannot: `changeOwner`
-///   requires a signature from the *current* key, which is exactly what's
-///   unavailable when a key is lost. A pre-registered, M-of-N set of
-///   guardians (e.g. family members, a treating hospital, other delegates)
-///   can instead jointly authorize moving the identity to a new address.
+/// @notice On-chain DID registry for patients, physicians, and hospitals.
+/// Implements the same interface as ERC-1056's EthereumDIDRegistry, so
+/// standard ethr-did / ethr-did-resolver tooling resolves identities here
+/// without any custom resolver.
+/// @dev Attribute values are never written to storage, only emitted as
+/// events; a DID Document is rebuilt off-chain by walking the event log
+/// backwards from `changed[identity]`. Guardian recovery exists because
+/// `changeOwner` needs a signature from the current key, which is exactly
+/// what you don't have once that key is actually lost.
 contract EHRRegistry {
     mapping(address => address) public owners;
     mapping(address => mapping(bytes32 => mapping(address => uint256))) public delegates;
@@ -160,16 +148,14 @@ contract EHRRegistry {
     }
 
     // ---------------------------------------------------------------------
-    // Guardian-based social recovery (use case: the identity owner's private
-    // key is lost — not merely delegated or transferred, but genuinely
-    // unavailable — and a pre-authorized set of guardians restores access to
-    // a new key the owner does control).
+    // Guardian-based social recovery (use case: the owner's private key is
+    // genuinely lost, and a pre-authorized set of guardians restores access)
     // ---------------------------------------------------------------------
 
     /// @notice (Re-)configures the guardian set and approval threshold for an
-    /// identity. Only the current owner can call this — typically once,
-    /// ahead of time, while they still hold their key — and again after a
-    /// successful recovery, since recovery clears the previous guardian set.
+    /// identity. Only the current owner can call this, typically once ahead
+    /// of time while they still hold their key, and again after a recovery
+    /// since that clears the previous guardian set.
     function setGuardians(address identity, address[] calldata newGuardians, uint256 threshold)
         public
         onlyOwner(identity, msg.sender)
@@ -199,8 +185,8 @@ contract EHRRegistry {
 
     /// @notice A guardian votes to move `identity` to `proposedNewOwner`.
     /// Once enough distinct guardians (>= the configured threshold) have
-    /// approved the *same* proposed address, recovery executes immediately —
-    /// no action from the (unreachable, by assumption) old key is needed.
+    /// approved the same proposed address, recovery executes immediately,
+    /// with no action needed from the lost key.
     function approveRecovery(address identity, address proposedNewOwner) public {
         require(isGuardian(identity, msg.sender), "EHRRegistry: caller is not a guardian for this identity");
         require(proposedNewOwner != address(0), "EHRRegistry: cannot recover to the zero address");
@@ -223,9 +209,7 @@ contract EHRRegistry {
         changed[identity] = block.number;
         emit RecoveryExecuted(identity, newOwner);
 
-        // Clearing the guardian set means recovery power does not silently
-        // carry over to whoever the guardians were before: the new owner
-        // must deliberately re-run setGuardians to re-enable recovery.
+        // The new owner has to call setGuardians again to re-enable recovery.
         delete guardians[identity];
         delete recoveryThreshold[identity];
     }

@@ -2,11 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 
-// Adversarial tests mapping directly to the security/privacy requirements
-// enumerated in the paper's Section "Security and Privacy Requirements in
-// EHRs" (audit control, access control, data integrity, patient consent,
-// verifiable revocation). Each `it()` states the requirement it exercises.
-// Results are summarized in results/security-analysis.md.
+// Adversarial tests for the security/privacy requirements from the paper's
+// "Security and Privacy Requirements in EHRs" section. Each `it()` states
+// the requirement it exercises; results are summarized in
+// results/security-analysis.md.
 
 const ATTR = ethers.encodeBytes32String("did/svc/Scheduling");
 const DELEGATE_TYPE = ethers.encodeBytes32String("sigAuth");

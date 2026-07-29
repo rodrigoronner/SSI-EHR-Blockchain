@@ -3,17 +3,13 @@ const { loadDeployment, getProvider, getActors, createNonceTracker } = require("
 const { buildEthrResolver, resolveAsOfChainHead } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
 
-// Demonstrates the paper's off-chain storage design (Section "Architecture
-// of the Proposed Framework"): a medical document is encrypted, stored on
-// IPFS, and only its content-addressed CID is anchored on-chain via the
-// patient's DID attribute. A second party (another doctor) retrieves the
-// CID from the chain, fetches the encrypted bytes from IPFS, and decrypts
-// them — proving the round trip preserves integrity without ever putting
-// the document itself on-chain.
+// A medical document is encrypted, stored on IPFS, and only its CID is
+// anchored on-chain via the patient's DID attribute. A second doctor then
+// retrieves the CID from the chain, fetches the encrypted bytes from IPFS,
+// and decrypts them.
 //
-// `helia`/`@helia/unixfs` are ESM-only packages; this script is CommonJS
-// (matching the rest of the project), so they are loaded via dynamic
-// `import()` rather than `require()`.
+// helia/@helia/unixfs are ESM-only, so they're loaded via dynamic import()
+// rather than require() here.
 
 const SYNTHETIC_RECORD = JSON.stringify(
   {

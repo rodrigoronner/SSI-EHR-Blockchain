@@ -1,10 +1,7 @@
 const { EthrDID } = require("ethr-did");
 
-// `EthrDID` instances double as a did-jwt-vc `Issuer` ({did, signer, alg}) —
-// when constructed with `privateKey`, EthrDID sets `signer` to an ES256K-R
-// (recoverable) signer and `alg` to 'ES256K-R', which is exactly the scheme
-// needed to verify a signature against a did:ethr's `blockchainAccountId`
-// (no separate public key material is published on-chain).
+// Constructed with a raw privateKey, EthrDID exposes {did, signer, alg} and
+// doubles as a did-jwt-vc Issuer directly.
 function makeEthrDid(wallet, deployment) {
   return new EthrDID({
     identifier: wallet.address,

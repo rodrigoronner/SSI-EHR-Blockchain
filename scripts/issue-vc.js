@@ -4,11 +4,9 @@ const { loadDeployment, getProvider, getActors } = require("./lib/network");
 const { buildResolver } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
 
-// Demonstrates the "EHR Operation" Verifiable Credential described in the
-// paper's Fig. `EHROperation`: a physician requests a lab exam for a
-// patient, and the request itself is issued as a signed VC-JWT so any third
-// party (the lab, an auditor) can verify who requested it and that it has
-// not been tampered with, without needing to trust a central database.
+// A physician requests a lab exam for a patient, issued as a signed VC-JWT
+// so any third party can verify who requested it and that it hasn't been
+// tampered with, without needing a central database.
 
 function heading(title) {
   console.log("\n=== " + title + " ===");

@@ -2,11 +2,11 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-// Guardian-based social recovery: answers "what if the private key is lost"
-// (as opposed to `changeOwner`, which requires a signature from the very key
-// that's assumed lost). A patient/physician pre-authorizes a set of
-// guardians and an M-of-N threshold; once enough guardians agree on the same
-// replacement address, the identity moves there without the old key.
+// Guardian-based social recovery: what happens when the private key is
+// genuinely lost, since changeOwner needs a signature from that same key.
+// A patient/physician pre-authorizes guardians and an M-of-N threshold;
+// once enough of them agree on the same replacement address, the identity
+// moves there without the old key.
 
 describe("Guardian-based social recovery", function () {
   async function deployFixture() {

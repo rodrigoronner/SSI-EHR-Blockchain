@@ -6,18 +6,15 @@ const artifact = require("../artifacts/contracts/EHRRegistry.sol/EHRRegistry.jso
 const { loadDeployment, getProvider, deriveWallet, createNonceTracker } = require("./lib/network");
 const { makeEthrDid } = require("./lib/did");
 
-// Cost Evaluation (paper Section "Results and Discussion"). Measures REAL
-// gas usage (from transaction receipts on a local Hardhat network) for each
-// EHRRegistry operation, then converts to ETH/USD using explicit, documented
-// assumptions rather than a live price feed — these are knobs, not a claim
-// about current market prices.
+// Cost Evaluation (paper Section "Results and Discussion"). Measures actual
+// gas usage from transaction receipts on a local Hardhat network for each
+// EHRRegistry operation, then converts to ETH/USD at a fixed rate below —
+// adjust if you want a different price point.
 const GAS_PRICE_GWEI = 20; // representative of a quiet period on Ethereum mainnet
-const ETH_USD_PRICE = 3000; // documented assumption, adjust as needed
+const ETH_USD_PRICE = 3000;
 
-// Hardhat's default local node only pre-funds accounts at derivation
-// indices 0-19; each "identity" below is its own transaction sender
-// (self-sovereign — identities pay their own gas), so we're capped at 20
-// distinct, funded identities per run without manual funding.
+// Hardhat's default node only pre-funds accounts 0-19, and each identity
+// pays its own gas, so that caps us at 20 funded identities per run.
 const NUM_IDENTITIES = 5;
 const IDENTITY_START_INDEX = 6; // avoid actors used by other demo scripts (0-5)
 const RECOVERY_IDENTITY_START_INDEX = 11; // separate pool so recovery doesn't disturb changeOwner's identities (6-10)

@@ -4,15 +4,11 @@ const { loadDeployment, getProvider, getActors, deriveWallet, createNonceTracker
 const { saveKeystore, loadKeystore } = require("./lib/keystore");
 
 // Key management, end to end:
-//   1) Storage:  the patient's key is never left as a bare hex string — it's
-//      saved as a password-encrypted V3 keystore file (same format as
-//      geth/MetaMask), demonstrated by encrypting then successfully
-//      decrypting it back with the correct password.
-//   2) Recovery: simulates the keystore file AND password both being lost
-//      (device stolen, no backup) — the on-chain, pre-registered guardians
-//      (Section "Guardian-based social recovery" in EHRRegistry.sol) jointly
-//      move the identity to a brand-new address the patient generates
-//      afterwards, without ever needing the old key again.
+//   1) Storage: the patient's key is encrypted to a password-protected V3
+//      keystore file (geth/MetaMask format), then decrypted back.
+//   2) Recovery: simulates the keystore and password both being lost. The
+//      pre-registered guardians jointly move the identity to a new address
+//      without ever needing the old key.
 
 function heading(title) {
   console.log("\n=== " + title + " ===");
