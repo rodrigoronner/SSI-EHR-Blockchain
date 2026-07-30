@@ -1,6 +1,6 @@
 # SSI-EHR-Blockchain
 
-A working implementation of a self-sovereign identity (SSI) framework for Electronic Health Records, built on Ethereum. Patients, physicians, and hospitals each hold a Decentralized Identifier (DID) they control directly, medical operations are issued and verified as signed Verifiable Credentials (VCs), and clinical documents are encrypted and kept off-chain on IPFS, with only their hash anchored on the blockchain.
+A working implementation of a self-sovereign identity (SSI) framework for Electronic Health Records, built on Ethereum. Patients, physicians, and hospitals each hold a Decentralized Identifier (DID) that they control directly. Medical operations are issued and verified as signed Verifiable Credentials (VCs), and clinical documents are encrypted and kept off-chain on IPFS, with only their hash anchored on the blockchain.
 
 The goal is to move EHR access control away from a central database that a single institution can lose, leak, or lock a patient out of, and place it under a mechanism that enforces ownership, delegation, and revocation via a smart contract rather than an administrator's discretion.
 
@@ -147,15 +147,7 @@ An identity's private key is stored as a password-encrypted keystore file, the s
 
 ## Known limitations
 
-- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly (same EVM), but latency and throughput should be treated as local proxies, not mainnet claims.
+- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly (on the same EVM), but latency and throughput should be treated as local proxies rather than mainnet claims.
 - The IPFS node used here is in-process and non-persistent — there's no pinning service behind it.
 - The contract has not been through a formal security audit.
 - Guardian recovery executes as soon as the approval threshold is met, with no time-lock or veto window for the legitimate owner to cancel a fraudulent attempt.
-
-## Paper
-
-This code accompanies:
-
-> Tertulino, R., Vidal, F., Ivaki, N. *Self-Sovereign Identity Management through Decentralized Identifiers and Verifiable Credentials.*
-
-If you use this repository in academic work, please cite the paper above.
