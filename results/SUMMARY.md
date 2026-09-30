@@ -1,6 +1,6 @@
 # Results Summary
 
-Measured from a real deployment of `EHRRegistry.sol` on a local Hardhat network (chain id `31337`), with Solidity 0.8.24, Hardhat 2.29.0, ethers 6.17, and Node.js 22. Every number here is measured rather than estimated; the raw data is in `cost-evaluation.json`, `performance-evaluation.json`, and `offchain-performance.json`, and the procedures are in `scripts/benchmark-*.js`.
+Measured from a real deployment of `EHRRegistry.sol` on a local Hardhat network (chain id `31337`), with Solidity 0.8.24, Hardhat 2.29.0, ethers 6.17, and Node.js 22. Every number here is measured rather than estimated; the raw data is in `cost-evaluation.json`, `performance-evaluation.json`, `offchain-performance.json`, and `vc-history.json`, and the procedures are in `scripts/benchmark-*.js`. The figures in `figures/` are generated from these files by `scripts/make_figures.py` (`npm run figures`).
 
 Re-running the benchmarks regenerates the JSON/CSV files. If you do that, the numbers below may shift slightly (gas is deterministic, wall-clock timings are not) — treat the JSON as authoritative.
 
@@ -23,6 +23,19 @@ Unlike the timing benchmarks, these carry essentially no measurement uncertainty
 | `approveRecovery` (executes recovery) | 102,737 | 102,737 | 0.00205474 | $6.16 |
 
 Contract deployment: one-time cost of 1,186,625 gas (0.02373250 ETH, $71.20).
+
+Cost scales linearly with gas price, so the same nine operations can be read at any price without a new measurement (ETH/USD fixed at $3,000):
+
+| Gas price | Cheapest operation (`revokeAttribute`) | Most expensive (`setGuardians`) |
+|---|---|---|
+| 1 gwei | $0.10 | $0.43 |
+| 5 gwei | $0.52 | $2.15 |
+| 10 gwei | $1.04 | $4.31 |
+| 20 gwei (used above) | $2.08 | $8.61 |
+| 50 gwei | $5.20 | $21.53 |
+| 100 gwei | $10.40 | $43.06 |
+
+Each figure is `meanGas × gasPrice × 10⁻⁹ × 3000`, from the means in `cost-evaluation.json`.
 
 Two things worth noting. `addDelegate` is the most expensive of the six core operations because it is the first write against a fresh identity and therefore pays the cold-slot premium on the shared `changed` counter as well as on the delegate slot itself; revoking that delegate costs roughly half once both are warm. And publishing an attribute costs the same whether the value is a short URL or a full IPFS CID, because the contract never persists attribute values — it only emits them as events.
 
@@ -91,17 +104,28 @@ Sustained IPFS throughput at 50 MB was 2.69 GB/s storing and 8.51 GB/s retrievin
 
 Verification is slower because it also resolves the issuer's DID Document from the registry's event log to obtain the verification key; signing uses a key already held locally. Neither depends on document size.
 
-**Verification cost grows with the identity's history. Because resolution walks the event log, it slows down as an identity accumulates changes. Measured against a registry on which the throughput benchmark had already recorded several hundred attribute changes per account, verification rose to 37.3 ms — about 40% higher than the 26.7 ms above. Always redeploy before measuring, and expect this to drift upward for long-lived, frequently-updated identities.
+### 2.5 Verification cost vs. the issuer's history
+
+Because resolution walks the issuer's event log, verification slows down as the issuer accumulates changes. `scripts/benchmark-vc-history.js` (`npm run bench:vc-history`) grows the issuing physician's history in steps, with each change a distinct attribute, and times 30 verifications at each step after three untimed warm-up passes.
+
+| Prior changes | n | Median (p50) | p95 | Mean (95% CI) | Median vs. baseline |
+|---|---|---|---|---|---|
+| 0 | 30 | 28.1 ms | 30.5 ms | 29.9 ± 4.5 ms | 1.00× |
+| 100 | 30 | 29.3 ms | 32.0 ms | 29.7 ± 0.6 ms | 1.04× |
+| 250 | 30 | 38.7 ms | 272.2 ms | 110.9 ± 131.9 ms | 1.38× |
+| 500 | 30 | 49.2 ms | 49.6 ms | 49.0 ± 0.2 ms | 1.75× |
+
+The median is the figure to read here. In two runs, a single resolution at the 250-change level stalled for about 2 s on the local node, which inflates that row's mean and interval without reflecting the cost of resolution itself; the medians of the two runs agreed within 3 ms at every level. Always redeploy before measuring, and expect verification to drift upward for long-lived, frequently updated identities.
 
 ## 3. Security
 
-33 automated tests, all passing (`npx hardhat test`), of which 16 are adversarial cases asserting that an unauthorized or invalid action fails. The requirement-by-requirement mapping is in `security-analysis.md`.
+34 automated tests, all passing (`npm test`), of which 16 are adversarial cases asserting that an unauthorized or invalid action fails. Adversarial tests carry an `[adversarial]` tag in their names, so `npm run test:adversarial` runs exactly those 16. Instrumented with `solidity-coverage` (`npm run coverage`), the suite exercises 100% of the contract's statements, branches, functions, and lines. The requirement-by-requirement mapping is in `security-analysis.md`.
 
 Access control is enforced entirely on-chain by the `onlyOwner` check, with no off-chain gatekeeper to bypass: unauthorized ownership transfers, delegations, and attribute changes all revert. Delegation is time-bound by construction, so a forgotten revocation degrades to "no access" rather than "permanent access". On the credential side, tampering, expiry, and issuer spoofing are each independently detected — verification attributes a credential to whichever key actually signed it, regardless of what the payload claims.
 
 ## 4. Key management
 
-Two complementary mechanisms, covered by 11 tests in `test/recovery.test.js` plus `scripts/demo-guardian-recovery.js`.
+Two complementary mechanisms, covered by 12 tests in `test/recovery.test.js` plus `scripts/demo-guardian-recovery.js`.
 
 **Storage.** `scripts/lib/keystore.js` encrypts a private key into a password-protected V3 keystore file — the format geth and MetaMask use — so the raw key is never written to disk in the clear.
 

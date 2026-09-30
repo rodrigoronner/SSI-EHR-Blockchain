@@ -7,6 +7,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:adversarial": "hardhat test --grep \"\\[adversarial\\]\"",
+    "coverage": "hardhat coverage",
     "node": "hardhat node",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
     "demo": "node scripts/demo-use-cases.js",
@@ -14,8 +16,10 @@
     "ipfs-demo": "node scripts/ipfs-store.js",
     "bench:cost": "node scripts/benchmark-cost.js",
     "bench:performance": "node scripts/benchmark-performance.js",
-    "bench:offchain": "node scripts/benchmark-offchain.js",
-    "recovery-demo": "node scripts/demo-guardian-recovery.js"
+    "bench:offchain": "node --max-old-space-size=4096 scripts/benchmark-offchain.js",
+    "bench:vc-history": "node scripts/benchmark-vc-history.js",
+    "recovery-demo": "node scripts/demo-guardian-recovery.js",
+    "figures": "python3 scripts/make_figures.py"
   },
   "devDependencies": {
     "hardhat": "2.29.0",
@@ -31,5 +35,8 @@
     "@helia/unixfs": "8.0.5",
     "multiformats": "14.0.5",
     "uint8arrays": "6.1.1"
+  },
+  "engines": {
+    "node": ">=22 <23"
   }
 }

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Generates the Cost/Performance Evaluation figures for the paper directly
-from results/cost-evaluation.json and results/performance-evaluation.json —
-run this after the benchmark scripts so the figures always match the numbers
-actually cited in the text."""
+from results/cost-evaluation.json, results/performance-evaluation.json, and
+results/offchain-performance.json — run this after the benchmark scripts so
+the figures always match the numbers actually cited in the text.
+
+Figures are written to results/figures/ by default; pass a directory as the
+first argument to write them elsewhere (e.g. next to the paper's source)."""
 import json
 import os
+import sys
 
 import matplotlib.pyplot as plt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(ROOT, "results")
-FIGDIR = os.path.join(
-    ROOT,
-    "Self_Sovereign_Identity_Management_through_Decentralized_Identifiers_and_Verifiable_Credentials",
-)
+FIGDIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RESULTS, "figures")
+os.makedirs(FIGDIR, exist_ok=True)
 
 plt.rcParams.update(
     {

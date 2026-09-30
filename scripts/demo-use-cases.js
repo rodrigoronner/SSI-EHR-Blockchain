@@ -114,7 +114,9 @@ async function main() {
   // -----------------------------------------------------------------
   // Use case i) patient data recovery
   // (full DID Document resolution: everything needed to reconstruct
-  // the identity's current state is recoverable from chain data alone)
+  // the identity's current state is recoverable from chain data alone;
+  // the records anchored to it are recovered from IPFS by another
+  // physician in scripts/ipfs-store.js, `npm run ipfs-demo`)
   // -----------------------------------------------------------------
   heading("Use case i) Patient data recovery (full DID Document resolution)");
   const finalPatientDoc = await resolve(patientDid.did);

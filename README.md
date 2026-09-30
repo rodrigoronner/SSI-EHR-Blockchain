@@ -76,7 +76,8 @@ Every tool below is pinned to an exact version (Python/Matplotlib is the one exc
 
 | Tool | Version | Role |
 |---|---|---|
-| Mocha / Chai | 11.7.6 / 4.5.0 | Test runner and assertions for the 33-test suite (via `hardhat-toolbox`). |
+| Mocha / Chai | 11.7.6 / 4.5.0 | Test runner and assertions for the 34-test suite (via `hardhat-toolbox`). |
+| `solidity-coverage` | 0.8.17 | Statement/branch/function/line coverage of the contract (`npm run coverage`, via `hardhat-toolbox`). |
 | `@nomicfoundation/hardhat-chai-matchers` | 2.1.2 | Solidity-specific assertions — revert reasons, emitted events. |
 | `@nomicfoundation/hardhat-network-helpers` | 1.1.2 | Test fixtures and network snapshots between test cases. |
 
@@ -85,7 +86,7 @@ Every tool below is pinned to an exact version (Python/Matplotlib is the one exc
 | Tool | Version | Role |
 |---|---|---|
 | Node.js | 22 | Runs every script, benchmark, and test in this repo. |
-| Python 3 + Matplotlib | 3.11.0 (not pinned) | `scripts/make_figures.py` turns the JSON results into the cost/performance figures used in the paper. Not part of `package.json` since it's the one non-Node tool here. |
+| Python 3 + Matplotlib | 3.11.0 (not pinned) | `scripts/make_figures.py` (`npm run figures`) turns the JSON results into the cost/performance figures used in the paper, written to `results/figures/`. Not part of `package.json` since it's the one non-Node tool here. |
 
 All dependency versions are pinned (in `package.json` and `package-lock.json`) so results are reproducible on a given clone.
 
@@ -97,6 +98,7 @@ scripts/                    demos and benchmarks (see below)
 scripts/lib/                shared helpers: network/provider setup, DID resolution, keystore handling
 test/                       automated test suite (Hardhat + Mocha/Chai)
 results/                    measured cost, performance, and security results (JSON/CSV + write-ups)
+results/figures/            the paper's evaluation figures, generated from results/*.json
 ```
 
 ## Getting started
@@ -122,13 +124,29 @@ npm run ipfs-demo    # encrypt a document, store it on IPFS, anchor its CID on-c
 npm run recovery-demo # encrypted keystore + guardian-based social recovery
 ```
 
-**Redeploy between runs.** Every script shares state through the same deployed contract, and running them back-to-back without `npm run deploy` in between will silently distort results or fail outright. Two concrete cases: the cost benchmark calls `changeOwner`, which hands ownership of its test identities to throwaway addresses, so a later benchmark trying to write to those identities reverts with `not authorized`; and any script that emits attribute events makes subsequent DID resolution slower, because resolving a DID Document means walking that identity's event log. In one measurement, running the throughput benchmark first inflated Verifiable Credential verification from 26.7 ms to 37.3 ms.
+**Redeploy between runs.** Every script shares state through the same deployed contract, and running them back-to-back without `npm run deploy` in between will silently distort results or fail outright. Two concrete cases: the cost benchmark calls `changeOwner`, which hands ownership of its test identities to throwaway addresses, so a later benchmark trying to write to those identities reverts with `not authorized`; and any script that emits attribute events makes subsequent DID resolution slower, because resolving a DID Document means walking that identity's event log. `npm run bench:vc-history` measures that second effect in isolation (see below).
 
 To run the automated test suite instead (self-contained, no local node required):
 
 ```bash
-npm test
+npm test                  # all 34 tests
+npm run test:adversarial  # only the 16 adversarial cases
+npm run coverage          # the same suite, instrumented with solidity-coverage
 ```
+
+## Reproducing the results
+
+Each benchmark writes its JSON/CSV into `results/`, overwriting what is there. With `npm run node` running, redeploy before every one of them:
+
+```bash
+npm run deploy && npm run bench:cost          # gas per operation            -> cost-evaluation.*
+npm run deploy && npm run bench:performance   # latency and throughput       -> performance-evaluation.*
+npm run deploy && npm run bench:offchain      # IPFS path by size, VC timing -> offchain-performance.*
+npm run deploy && npm run bench:vc-history    # VC verify vs. issuer history -> vc-history.*
+npm run figures                               # regenerate results/figures/ from the JSON
+```
+
+Gas is deterministic, so the cost figures reproduce to within a few gas (the `changeOwner` target is a fresh random address on each run, and zero bytes in it change the calldata cost). Timings will differ from machine to machine; the JSON files hold the values reported in the paper.
 
 ## Results
 
@@ -137,10 +155,12 @@ Cost, performance, and security were all measured, not just discussed. Full data
 - `results/cost-evaluation.{json,csv}` — gas cost per operation, converted to USD at a representative gas price.
 - `results/performance-evaluation.{json,csv}` — confirmation latency across different block-time configurations, and throughput under concurrent load.
 - `results/offchain-performance.{json,csv}` — latency of each stage of the off-chain path (encrypt, IPFS store, retrieve, decrypt) from 80 B to 50 MB, and Verifiable Credential sign/verify latency.
+- `results/vc-history.{json,csv}` — Verifiable Credential verification latency as the issuer's on-chain history grows from 0 to 500 changes.
+- `results/figures/` — the cost and performance figures used in the paper.
 - `results/security-analysis.md` — every access-control, revocation, and credential-integrity requirement mapped to the adversarial test that exercises it.
 - `results/SUMMARY.md` — all of the above consolidated.
 
-A few headline numbers (see the paper for full methodology): core identity operations cost between $2.08 and $4.33 per call at 20 gwei; confirmation latency tracks the underlying network's block time almost exactly (39.7 ms under instant mining, 4.0 s at a 4-second block interval); on-chain throughput reaches close to 300 tx/s under concurrent load; the full off-chain round trip for a 50 MB document takes 54.5 ms; and a 33-test suite, 16 of whose cases are adversarial, covering access control, revocation, credential tampering, and guardian recovery passes in full.
+A few headline numbers (see the paper for full methodology): core identity operations cost between $2.08 and $4.33 per call at 20 gwei; confirmation latency tracks the underlying network's block time almost exactly (39.7 ms under instant mining, 4.0 s at a 4-second block interval); on-chain throughput reaches close to 300 tx/s under concurrent load; the full off-chain round trip for a 50 MB document takes 54.5 ms; and a 34-test suite, 16 of whose cases are adversarial, covering access control, revocation, credential tampering, and guardian recovery passes in full with 100% statement and branch coverage of the contract.
 
 ## Key management
 
