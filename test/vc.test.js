@@ -77,7 +77,7 @@ describe("Verifiable Credentials (EHR Operation)", function () {
     expect(verified.verifiableCredential.credentialSubject.id).to.equal(patientDid.did);
   });
 
-  it("rejects a VC whose payload was tampered with after signing", async function () {
+  it("rejects a VC whose payload was tampered with after signing [adversarial]", async function () {
     const { doctorDid, patientDid, resolver } = await setup();
     const vcJwt = await createVerifiableCredentialJwt(credentialPayload(doctorDid, patientDid), doctorDid);
     const [headerB64, payloadB64, signatureB64] = vcJwt.split(".");
@@ -89,7 +89,7 @@ describe("Verifiable Credentials (EHR Operation)", function () {
     await expectRejection(verifyCredential(tamperedJwt, resolver), /invalid_signature/);
   });
 
-  it("rejects a VC that has already expired", async function () {
+  it("rejects a VC that has already expired [adversarial]", async function () {
     const { doctorDid, patientDid, resolver } = await setup();
     const payload = credentialPayload(doctorDid, patientDid, {
       issuanceDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
@@ -100,7 +100,7 @@ describe("Verifiable Credentials (EHR Operation)", function () {
     await expectRejection(verifyCredential(vcJwt, resolver), /expired/);
   });
 
-  it("cannot be forged by putting the doctor's DID in the payload and signing with a different key", async function () {
+  it("cannot be forged by putting the doctor's DID in the payload and signing with a different key [adversarial]", async function () {
     const { doctorDid, patientDid, resolver } = await setup();
     const impostorWallet = deriveWallet(5, ethers.provider);
     const impostorDid = new EthrDID({

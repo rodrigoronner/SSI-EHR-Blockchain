@@ -29,7 +29,7 @@ describe("EHRRegistry", function () {
       expect(await registry.identityOwner(patient.address)).to.equal(hospitalBuyer.address);
     });
 
-    it("reverts when called by a non-owner", async function () {
+    it("reverts when called by a non-owner [adversarial]", async function () {
       const { registry, patient, stranger } = await loadFixture(deployFixture);
       await expect(
         registry.connect(stranger).changeOwner(patient.address, stranger.address)
@@ -68,7 +68,7 @@ describe("EHRRegistry", function () {
       expect(await registry.validDelegate(patient.address, DELEGATE_TYPE, delegate.address)).to.equal(false);
     });
 
-    it("reverts when a non-owner tries to add or revoke a delegate", async function () {
+    it("reverts when a non-owner tries to add or revoke a delegate [adversarial]", async function () {
       const { registry, patient, delegate, stranger } = await loadFixture(deployFixture);
       await expect(
         registry.connect(stranger).addDelegate(patient.address, DELEGATE_TYPE, delegate.address, 3600)
@@ -93,7 +93,7 @@ describe("EHRRegistry", function () {
         .withArgs(patient.address, ATTR_SERVICE, ethers.hexlify(value), 0n, anyValue);
     });
 
-    it("reverts when a non-owner tries to publish an attribute", async function () {
+    it("reverts when a non-owner tries to publish an attribute [adversarial]", async function () {
       const { registry, patient, stranger } = await loadFixture(deployFixture);
       const value = ethers.toUtf8Bytes("https://malicious.example");
       await expect(

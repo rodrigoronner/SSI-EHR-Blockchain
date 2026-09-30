@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 // Adversarial tests for the security/privacy requirements from the paper's
-// "Security and Privacy Requirements in EHRs" section. Each `it()` states
+// "Security and Privacy Requirements" section. Each `it()` states
 // the requirement it exercises; results are summarized in
 // results/security-analysis.md.
 
@@ -19,7 +19,7 @@ describe("Security Analysis: adversarial access-control and lifecycle cases", fu
     return { registry, identityOwner, delegate, attacker, newOwner };
   }
 
-  it("[access control] an attacker cannot transfer ownership of an identity they do not control", async function () {
+  it("[access control] an attacker cannot transfer ownership of an identity they do not control [adversarial]", async function () {
     const { registry, identityOwner, attacker } = await loadFixture(deployFixture);
     await expect(
       registry.connect(attacker).changeOwner(identityOwner.address, attacker.address)
@@ -27,7 +27,7 @@ describe("Security Analysis: adversarial access-control and lifecycle cases", fu
     expect(await registry.identityOwner(identityOwner.address)).to.equal(identityOwner.address);
   });
 
-  it("[access control] an attacker cannot grant themselves as a delegate on another identity", async function () {
+  it("[access control] an attacker cannot grant themselves as a delegate on another identity [adversarial]", async function () {
     const { registry, identityOwner, attacker } = await loadFixture(deployFixture);
     await expect(
       registry.connect(attacker).addDelegate(identityOwner.address, DELEGATE_TYPE, attacker.address, 3600)
@@ -35,7 +35,7 @@ describe("Security Analysis: adversarial access-control and lifecycle cases", fu
     expect(await registry.validDelegate(identityOwner.address, DELEGATE_TYPE, attacker.address)).to.equal(false);
   });
 
-  it("[access control] an attacker cannot revoke a legitimate delegate on another identity", async function () {
+  it("[access control] an attacker cannot revoke a legitimate delegate on another identity [adversarial]", async function () {
     const { registry, identityOwner, delegate, attacker } = await loadFixture(deployFixture);
     await registry.connect(identityOwner).addDelegate(identityOwner.address, DELEGATE_TYPE, delegate.address, 3600);
     await expect(
@@ -45,11 +45,19 @@ describe("Security Analysis: adversarial access-control and lifecycle cases", fu
     expect(await registry.validDelegate(identityOwner.address, DELEGATE_TYPE, delegate.address)).to.equal(true);
   });
 
-  it("[access control] an attacker cannot publish or revoke attributes on another identity", async function () {
+  it("[access control] an attacker cannot publish or revoke attributes on another identity [adversarial]", async function () {
     const { registry, identityOwner, attacker } = await loadFixture(deployFixture);
     const maliciousValue = ethers.toUtf8Bytes("https://attacker.example/phishing-api");
     await expect(
       registry.connect(attacker).setAttribute(identityOwner.address, ATTR, maliciousValue, 3600)
+    ).to.be.revertedWith("EHRRegistry: not authorized (not identity owner)");
+
+    // Revocation needs the same authority: an attacker must not be able to
+    // take down an endpoint the owner legitimately published.
+    const legitimateValue = ethers.toUtf8Bytes("https://hospital.example/scheduling-api");
+    await registry.connect(identityOwner).setAttribute(identityOwner.address, ATTR, legitimateValue, 3600);
+    await expect(
+      registry.connect(attacker).revokeAttribute(identityOwner.address, ATTR, legitimateValue)
     ).to.be.revertedWith("EHRRegistry: not authorized (not identity owner)");
   });
 

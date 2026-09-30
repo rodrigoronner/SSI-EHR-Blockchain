@@ -28,14 +28,14 @@ describe("Guardian-based social recovery", function () {
       expect(await registry.isGuardian(owner.address, guardian2.address)).to.equal(true);
     });
 
-    it("reverts when called by a non-owner", async function () {
+    it("reverts when called by a non-owner [adversarial]", async function () {
       const { registry, owner, guardian1, stranger } = await loadFixture(deployFixture);
       await expect(
         registry.connect(stranger).setGuardians(owner.address, [guardian1.address], 1)
       ).to.be.revertedWith("EHRRegistry: not authorized (not identity owner)");
     });
 
-    it("rejects a threshold of zero or greater than the guardian count", async function () {
+    it("rejects a threshold of zero or greater than the guardian count [adversarial]", async function () {
       const { registry, owner, guardian1, guardian2 } = await loadFixture(deployFixture);
       await expect(
         registry.connect(owner).setGuardians(owner.address, [guardian1.address, guardian2.address], 0)
@@ -45,8 +45,14 @@ describe("Guardian-based social recovery", function () {
       ).to.be.revertedWith("EHRRegistry: invalid threshold");
     });
 
-    it("rejects a duplicate guardian in the same list", async function () {
+    it("rejects an invalid guardian list: empty, containing the zero address, or with a duplicate [adversarial]", async function () {
       const { registry, owner, guardian1 } = await loadFixture(deployFixture);
+      await expect(registry.connect(owner).setGuardians(owner.address, [], 1)).to.be.revertedWith(
+        "EHRRegistry: at least one guardian required"
+      );
+      await expect(
+        registry.connect(owner).setGuardians(owner.address, [guardian1.address, ethers.ZeroAddress], 1)
+      ).to.be.revertedWith("EHRRegistry: guardian cannot be the zero address");
       await expect(
         registry.connect(owner).setGuardians(owner.address, [guardian1.address, guardian1.address], 1)
       ).to.be.revertedWith("EHRRegistry: duplicate guardian");
@@ -63,11 +69,18 @@ describe("Guardian-based social recovery", function () {
       return fixture;
     }
 
-    it("rejects an approval from someone who is not a registered guardian", async function () {
+    it("rejects an approval from someone who is not a registered guardian [adversarial]", async function () {
       const { registry, owner, stranger, newOwner } = await loadFixture(withGuardiansConfigured);
       await expect(
         registry.connect(stranger).approveRecovery(owner.address, newOwner.address)
       ).to.be.revertedWith("EHRRegistry: caller is not a guardian for this identity");
+    });
+
+    it("refuses to recover an identity to the zero address, which would lock it permanently [adversarial]", async function () {
+      const { registry, owner, guardian1 } = await loadFixture(withGuardiansConfigured);
+      await expect(
+        registry.connect(guardian1).approveRecovery(owner.address, ethers.ZeroAddress)
+      ).to.be.revertedWith("EHRRegistry: cannot recover to the zero address");
     });
 
     it("does not execute recovery before the approval threshold is met", async function () {
@@ -95,7 +108,7 @@ describe("Guardian-based social recovery", function () {
       expect(identityBefore).to.equal(owner.address);
     });
 
-    it("prevents a single guardian from approving twice to inflate the count", async function () {
+    it("prevents a single guardian from approving twice to inflate the count [adversarial]", async function () {
       const { registry, owner, guardian1, newOwner } = await loadFixture(withGuardiansConfigured);
       await registry.connect(guardian1).approveRecovery(owner.address, newOwner.address);
       await expect(
