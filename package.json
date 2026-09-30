@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Reference implementation and experiments (cost, performance, security) for the DID/VC-based SSI framework for EHRs described in the paper.",
+  "license": "MIT",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

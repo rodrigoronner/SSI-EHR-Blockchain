@@ -41,13 +41,13 @@ A guardian-recovery extension sits alongside the core registry: guardians are re
 
 ## Tools
 
-Every tool below is pinned to an exact version in `package.json` (Python/Matplotlib is the one exception, noted below), so a clone of this repo reproduces the same numbers reported in the paper.
+Every tool below is pinned to an exact version (Python/Matplotlib is the one exception, noted below): directly in `package.json`, or, for the libraries that `@nomicfoundation/hardhat-toolbox` brings in (ethers.js, Mocha/Chai and the Hardhat helpers), through `package-lock.json`. Install with `npm ci` so that the lockfile is honoured and a clone reproduces the same numbers reported in the paper.
 
 **Smart contract and chain**
 
 | Tool | Version | Role |
 |---|---|---|
-| Solidity | 0.8.24 (EVM target `paris`) | Language `EHRRegistry.sol` is written in. |
+| Solidity | 0.8.24 (EVM target `paris`, optimizer enabled with 200 runs) | Language `EHRRegistry.sol` is written in. The optimizer setting affects gas, so it is part of what makes the cost figures reproducible. |
 | Hardhat | 2.29.0 | Local Ethereum node, compiler, test runner, and deployment tool — everything in this repo runs against a Hardhat network, not a public chain. |
 | `@nomicfoundation/hardhat-toolbox` | 5.0.0 | Bundle that wires ethers.js, Mocha/Chai, and the two helpers below into Hardhat. |
 | ethers.js | 6.17.0 | JavaScript client library: builds and signs transactions, reads contract state, and decodes events. |
@@ -87,7 +87,7 @@ Every tool below is pinned to an exact version in `package.json` (Python/Matplot
 | Node.js | 22 | Runs every script, benchmark, and test in this repo. |
 | Python 3 + Matplotlib | 3.11.0 (not pinned) | `scripts/make_figures.py` turns the JSON results into the cost/performance figures used in the paper. Not part of `package.json` since it's the one non-Node tool here. |
 
-All dependency versions are pinned in `package.json` so results are reproducible on a given clone.
+All dependency versions are pinned (in `package.json` and `package-lock.json`) so results are reproducible on a given clone.
 
 ## Repository layout
 
@@ -102,7 +102,7 @@ results/                    measured cost, performance, and security results (JS
 ## Getting started
 
 ```bash
-npm install
+npm ci
 npx hardhat compile
 ```
 
@@ -136,10 +136,11 @@ Cost, performance, and security were all measured, not just discussed. Full data
 
 - `results/cost-evaluation.{json,csv}` — gas cost per operation, converted to USD at a representative gas price.
 - `results/performance-evaluation.{json,csv}` — confirmation latency across different block-time configurations, and throughput under concurrent load.
+- `results/offchain-performance.{json,csv}` — latency of each stage of the off-chain path (encrypt, IPFS store, retrieve, decrypt) from 80 B to 50 MB, and Verifiable Credential sign/verify latency.
 - `results/security-analysis.md` — every access-control, revocation, and credential-integrity requirement mapped to the adversarial test that exercises it.
 - `results/SUMMARY.md` — all of the above consolidated.
 
-A few headline numbers (see the paper for full methodology): core identity operations cost between $2.08 and $4.33 per call at 20 gwei; confirmation latency tracks the underlying network's block time almost exactly (38 ms under instant mining, ~4 s at a 4-second block interval); on-chain throughput reaches close to 300 tx/s under concurrent load; and a 33-case adversarial test suite covering access control, revocation, credential tampering, and guardian recovery passes in full.
+A few headline numbers (see the paper for full methodology): core identity operations cost between $2.08 and $4.33 per call at 20 gwei; confirmation latency tracks the underlying network's block time almost exactly (39.7 ms under instant mining, 4.0 s at a 4-second block interval); on-chain throughput reaches close to 300 tx/s under concurrent load; the full off-chain round trip for a 50 MB document takes 54.5 ms; and a 33-test suite, 16 of whose cases are adversarial, covering access control, revocation, credential tampering, and guardian recovery passes in full.
 
 ## Key management
 
@@ -151,3 +152,10 @@ An identity's private key is stored as a password-encrypted keystore file, the s
 - The IPFS node used here is in-process and non-persistent — there's no pinning service behind it.
 - The contract has not been through a formal security audit.
 - Guardian recovery executes as soon as the approval threshold is met, with no time-lock or veto window for the legitimate owner to cancel a fraudulent attempt.
+- Revoking a delegate does not revoke decryption: a party that has already fetched and decrypted a document keeps it. Key distribution is assumed to happen out of band.
+- On-chain metadata is public even when content is not: anchoring a CID reveals that an address published a document of a given category at a given time.
+- There is no emergency ("break-glass") access path for an incapacitated patient.
+
+## License
+
+Released under the [MIT License](LICENSE), with one exception: `contracts/EHRRegistry.sol` keeps the Apache-2.0 license declared in its SPDX header, since it follows the interface of the ERC-1056 `EthereumDIDRegistry` reference implementation, which is distributed under Apache-2.0.
