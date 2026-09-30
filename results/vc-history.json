@@ -1,0 +1,74 @@
+{
+  "trialsPerLevel": 30,
+  "confidenceLevel": 0.95,
+  "levels": [
+    {
+      "priorChanges": 0,
+      "verify": {
+        "n": 30,
+        "mean": 29.928,
+        "sd": 12.083,
+        "ci95": 4.511,
+        "ciLow": 25.416,
+        "ciHigh": 34.439,
+        "min": 24.427,
+        "max": 93.155,
+        "p50": 28.117,
+        "p95": 30.533,
+        "p99": 93.155
+      },
+      "medianRelativeToBaseline": 1
+    },
+    {
+      "priorChanges": 100,
+      "verify": {
+        "n": 30,
+        "mean": 29.746,
+        "sd": 1.623,
+        "ci95": 0.606,
+        "ciLow": 29.14,
+        "ciHigh": 30.352,
+        "min": 27.794,
+        "max": 37.152,
+        "p50": 29.344,
+        "p95": 32.011,
+        "p99": 37.152
+      },
+      "medianRelativeToBaseline": 1.044
+    },
+    {
+      "priorChanges": 250,
+      "verify": {
+        "n": 30,
+        "mean": 110.886,
+        "sd": 353.28,
+        "ci95": 131.902,
+        "ciLow": -21.016,
+        "ciHigh": 242.788,
+        "min": 36.325,
+        "max": 1967.734,
+        "p50": 38.669,
+        "p95": 272.176,
+        "p99": 1967.734
+      },
+      "medianRelativeToBaseline": 1.375
+    },
+    {
+      "priorChanges": 500,
+      "verify": {
+        "n": 30,
+        "mean": 49.039,
+        "sd": 0.535,
+        "ci95": 0.2,
+        "ciLow": 48.839,
+        "ciHigh": 49.238,
+        "min": 47.782,
+        "max": 49.837,
+        "p50": 49.167,
+        "p95": 49.582,
+        "p99": 49.837
+      },
+      "medianRelativeToBaseline": 1.749
+    }
+  ]
+}
