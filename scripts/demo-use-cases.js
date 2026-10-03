@@ -2,6 +2,7 @@ const { DelegateTypes } = require("ethr-did");
 const { loadDeployment, getProvider, getActors, createNonceTracker } = require("./lib/network");
 const { buildEthrResolver, resolveAsOfChainHead } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
+const { encrypt } = require("./lib/aesgcm");
 
 // End-to-end walkthrough of the four use cases the paper enumerates in the
 // Introduction, plus DID ownership transfer, all executed against a real
@@ -75,16 +76,29 @@ async function main() {
   // verifiably — anyone resolving the DID can confirm it was revoked)
   // -----------------------------------------------------------------
   heading("Use case iii) Verifiable data revocation");
-  const recordHash = "0x" + "11".repeat(32); // placeholder for a real IPFS-content hash
+  // The anchor is the CID of an encrypted (synthetic) document: the same CID
+  // IPFS would assign to it, computed here without running a node. The full
+  // store-and-retrieve path is in scripts/ipfs-store.js (`npm run ipfs-demo`).
+  const { CID } = await import("multiformats/cid");
+  const { sha256 } = await import("multiformats/hashes/sha2");
+  const raw = await import("multiformats/codecs/raw");
+  const crypto = require("crypto");
+  const document = Buffer.from(JSON.stringify({ result: "Within normal reference ranges." }));
+  const ciphertext = encrypt(document, crypto.randomBytes(32));
+  const recordCid = CID.create(1, raw.code, await sha256.digest(ciphertext)).toString();
+  const recordHash = recordCid;
+  // An opaque name: attribute names are public, so they must not say what
+  // kind of record they point to.
+  const recordName = "doc/" + crypto.randomBytes(8).toString("hex");
   await patientDid.setAttribute(
-    "ehr/doc/exam-2026-07-28",
+    recordName,
     recordHash,
     24 * 60 * 60,
     undefined,
     { nonce: await nextNonce(actors.patient.address) }
   );
-  console.log("Published attribute referencing an EHR document hash on-chain.");
-  await patientDid.revokeAttribute("ehr/doc/exam-2026-07-28", recordHash, undefined, {
+  console.log(`Published attribute ${recordName} anchoring the document's CID ${recordCid} on-chain.`);
+  await patientDid.revokeAttribute(recordName, recordHash, undefined, {
     nonce: await nextNonce(actors.patient.address),
   });
   console.log("Revoked it. Revocation is itself an on-chain, auditable event (DIDAttributeChanged, validTo=0).");

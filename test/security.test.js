@@ -82,9 +82,24 @@ describe("Security Analysis: adversarial access-control and lifecycle cases", fu
   });
 
   it("[audit control] every ownership/delegate/attribute change is independently auditable via on-chain events", async function () {
-    const { registry, identityOwner, newOwner } = await loadFixture(deployFixture);
+    const { registry, identityOwner, delegate, newOwner } = await loadFixture(deployFixture);
+    const value = ethers.toUtf8Bytes("https://hospital.example/scheduling-api");
+
+    // Each event carries the new state and the block of the identity's
+    // previous change, so the full history can be walked back from the latest.
+    const tx1 = await registry.connect(identityOwner).addDelegate(identityOwner.address, DELEGATE_TYPE, delegate.address, 3600);
+    await expect(tx1).to.emit(registry, "DIDDelegateChanged");
+    const block1 = BigInt((await tx1.wait()).blockNumber);
+
+    const tx2 = await registry.connect(identityOwner).setAttribute(identityOwner.address, ATTR, value, 3600);
+    await expect(tx2).to.emit(registry, "DIDAttributeChanged");
+    const event2 = (await tx2.wait()).logs.map((log) => registry.interface.parseLog(log)).find((e) => e);
+    expect(event2.args.previousChange).to.equal(block1);
+    const block2 = BigInt((await tx2.wait()).blockNumber);
+
     await expect(registry.connect(identityOwner).changeOwner(identityOwner.address, newOwner.address))
       .to.emit(registry, "DIDOwnerChanged")
-      .withArgs(identityOwner.address, newOwner.address, 0n);
+      .withArgs(identityOwner.address, newOwner.address, block2);
+    expect(await registry.changed(identityOwner.address)).to.be.greaterThan(block2);
   });
 });

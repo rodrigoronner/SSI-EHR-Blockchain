@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { loadDeployment, getProvider, getActors, createNonceTracker } = require("./lib/network");
 const { buildEthrResolver, resolveAsOfChainHead } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
+const { encrypt, decrypt } = require("./lib/aesgcm");
 
 // A medical document is encrypted, stored on IPFS, and only its CID is
 // anchored on-chain via the patient's DID attribute. A second doctor then
@@ -23,24 +24,6 @@ const SYNTHETIC_RECORD = JSON.stringify(
   null,
   2
 );
-
-function encrypt(plaintextBuffer, key) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-  const ciphertext = Buffer.concat([cipher.update(plaintextBuffer), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  // Pack iv | authTag | ciphertext into a single blob for storage.
-  return Buffer.concat([iv, authTag, ciphertext]);
-}
-
-function decrypt(blob, key) {
-  const iv = blob.subarray(0, 12);
-  const authTag = blob.subarray(12, 28);
-  const ciphertext = blob.subarray(28);
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-}
 
 function heading(title) {
   console.log("\n=== " + title + " ===");
@@ -75,18 +58,20 @@ async function main() {
   console.log("Stored under CID:", cid.toString());
 
   heading("Anchoring the CID on-chain via the patient's DID attribute");
-  const recordId = "exam-2026-07-28";
-  await patientDid.setAttribute(`ehr/doc/${recordId}`, cid.toString(), 365 * 24 * 60 * 60, undefined, {
+  // Attribute names are public on-chain, so they must not reveal what kind of
+  // record this is: an opaque identifier, not e.g. "exam-2026-07-28".
+  const recordId = crypto.randomBytes(8).toString("hex");
+  await patientDid.setAttribute(`doc/${recordId}`, cid.toString(), 365 * 24 * 60 * 60, undefined, {
     nonce: await nextNonce(actors.patient.address),
   });
-  console.log(`Attribute "ehr/doc/${recordId}" set to CID ${cid.toString()}`);
+  console.log(`Attribute "doc/${recordId}" set to CID ${cid.toString()}`);
 
   heading("Second doctor: reading the CID back from chain history");
   const ethrResolver = buildEthrResolver(deployment);
   const address = patientDid.did.split(":").pop();
   const { history } = await ethrResolver.changeLog(address, "ehr-local", "latest");
   const attributeEvent = history
-    .filter((event) => event.eventType === "DIDAttributeChanged" && event.name === `ehr/doc/${recordId}`)
+    .filter((event) => event.eventType === "DIDAttributeChanged" && event.name === `doc/${recordId}`)
     .pop();
   if (!attributeEvent) {
     throw new Error("Could not find the attribute event we just published — something is wrong.");

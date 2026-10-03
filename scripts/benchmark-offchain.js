@@ -5,6 +5,7 @@ const { createVerifiableCredentialJwt, verifyCredential } = require("did-jwt-vc"
 const { loadDeployment, getProvider, getActors } = require("./lib/network");
 const { buildResolver } = require("./lib/resolver");
 const { makeEthrDid } = require("./lib/did");
+const { encrypt, decrypt } = require("./lib/aesgcm");
 const { summarize, formatCi } = require("./lib/stats");
 
 // Off-chain latency numbers to go with the on-chain ones. No blockchain
@@ -33,22 +34,6 @@ const SIZES = [
   { label: "10 MB", bytes: 10 * 1024 * 1024, trials: 10 },
   { label: "50 MB", bytes: 50 * 1024 * 1024, trials: 10 },
 ];
-
-function encrypt(plaintext, key) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]);
-}
-
-function decrypt(blob, key) {
-  const iv = blob.subarray(0, 12);
-  const authTag = blob.subarray(12, 28);
-  const ciphertext = blob.subarray(28);
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-}
 
 async function benchmarkIpfs() {
   const { createHelia } = await import("helia");

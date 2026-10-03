@@ -119,4 +119,25 @@ describe("Verifiable Credentials (EHR Operation)", function () {
     expect(verified.issuer).to.equal(impostorDid.did);
     expect(verified.issuer).to.not.equal(doctorDid.did);
   });
+
+  it("no longer verifies a credential signed before the issuer's DID changed owner (a known limitation)", async function () {
+    this.timeout(20000);
+    const { doctorDid, patientDid, resolver } = await setup();
+    const vcJwt = await createVerifiableCredentialJwt(credentialPayload(doctorDid, patientDid), doctorDid);
+    await verifyCredential(vcJwt, resolver);
+
+    // e.g. the issuing hospital is acquired, or the physician's key is recovered.
+    await doctorDid.changeOwner(deriveWallet(6, ethers.provider).address);
+
+    // ethr-did-resolver ignores events whose block timestamp is ahead of the
+    // wall clock, which Hardhat's automine can produce; wait until it is not.
+    const { timestamp } = await ethers.provider.getBlock("latest");
+    const ahead = Number(timestamp) * 1000 - Date.now();
+    if (ahead >= 0) await new Promise((resolve) => setTimeout(resolve, ahead + 1100));
+
+    // The current DID Document lists the new owner's key only, so the old
+    // signature no longer matches. Verifiers would have to resolve the issuer's
+    // DID as of the credential's issuance time to accept it.
+    await expectRejection(verifyCredential(vcJwt, resolver), /invalid_signature/);
+  });
 });
