@@ -11,7 +11,7 @@ const { summarize } = require("./lib/stats");
 // gas usage from transaction receipts on a local Hardhat network for each
 // EHRRegistry operation, then converts to ETH/USD at a fixed rate below —
 // adjust if you want a different price point.
-const GAS_PRICE_GWEI = 20; // representative of a quiet period on Ethereum mainnet
+const GAS_PRICE_GWEI = 20; // a round reference price; SUMMARY.md converts to other prices
 const ETH_USD_PRICE = 3000;
 
 // Hardhat's default node only pre-funds accounts 0-19, and each identity
@@ -19,6 +19,7 @@ const ETH_USD_PRICE = 3000;
 const NUM_IDENTITIES = 5;
 const IDENTITY_START_INDEX = 6; // avoid actors used by other demo scripts (0-5)
 const RECOVERY_IDENTITY_START_INDEX = 11; // separate pool so recovery doesn't disturb changeOwner's identities (6-10)
+const MECHANICS_IDENTITY_INDEX = 19; // its own identity for the gas-mechanics measurements below
 
 // Gas is a deterministic function of the input, so the interval here should
 // come out at or near zero. That is worth reporting rather than omitting: it
@@ -64,7 +65,10 @@ async function main() {
     const identityWallet = deriveWallet(IDENTITY_START_INDEX + i, provider);
     const identityDid = makeEthrDid(identityWallet, deployment);
     const delegateTarget = deriveWallet(0, provider).address; // any funded address works as the delegate/target
-    const investorTarget = ethers.Wallet.createRandom().address; // gas cost doesn't depend on the target having funds
+    // A fixed target, so changeOwner's calldata (and therefore its gas) is the
+    // same on every run; zero bytes in a random address would change it by a
+    // few gas. The target needs no funds: it only becomes the recorded owner.
+    const investorTarget = deriveWallet(100 + i).address;
 
     const addReceiptHash = await identityDid.addDelegate(
       delegateTarget,
@@ -85,7 +89,7 @@ async function main() {
     results.setAttributeShort.push({ label: "setAttribute (~41B, URL)", gasUsed: await gasUsedFor(provider, setShortHash) });
 
     const cidValue = "bafkreiejjxfnls5o4uqwtpt7xuluskifl2uas2vhwcloc7natfkkmi2y54"; // ~59 bytes, IPFS-CID-sized
-    const setCidHash = await identityDid.setAttribute(`ehr/doc/exam-${i}`, cidValue, 3600, undefined, {
+    const setCidHash = await identityDid.setAttribute(`doc/${i}`, cidValue, 3600, undefined, {
       nonce: await nextNonce(identityWallet.address),
     });
     results.setAttributeCidLength.push({
@@ -93,7 +97,7 @@ async function main() {
       gasUsed: await gasUsedFor(provider, setCidHash),
     });
 
-    const revokeAttrHash = await identityDid.revokeAttribute(`ehr/doc/exam-${i}`, cidValue, undefined, {
+    const revokeAttrHash = await identityDid.revokeAttribute(`doc/${i}`, cidValue, undefined, {
       nonce: await nextNonce(identityWallet.address),
     });
     results.revokeAttribute.push({ label: "revokeAttribute", gasUsed: await gasUsedFor(provider, revokeAttrHash) });
@@ -116,7 +120,7 @@ async function main() {
     const setGuardiansReceipt = await setGuardiansTx.wait();
     results.setGuardians.push({ label: "setGuardians", gasUsed: Number(setGuardiansReceipt.gasUsed) });
 
-    const recoveryTarget = ethers.Wallet.createRandom().address;
+    const recoveryTarget = deriveWallet(200 + i).address; // fixed, like changeOwner's target, so gas is reproducible
     const firstApprovalTx = await registryContract
       .connect(guardians[0])
       .approveRecovery(recoveryIdentity.address, recoveryTarget, { nonce: await nextNonce(guardians[0].address) });
@@ -136,11 +140,14 @@ async function main() {
     });
   }
 
+  const mechanics = await measureMechanics(provider, registryContract, nextNonce);
+
   const report = {
     assumptions: { gasPriceGwei: GAS_PRICE_GWEI, ethUsdPrice: ETH_USD_PRICE, trialsPerOperation: NUM_IDENTITIES },
     network: { chainId: deployment.chainId, registryAddress: deployment.registryAddress },
     deployment: null,
     operations: {},
+    mechanics,
   };
 
   console.log("\n=== Cost Evaluation ===");
@@ -165,6 +172,11 @@ async function main() {
     );
   }
 
+  console.log("\nWhere the gas goes (single identity, fixed inputs):");
+  for (const [key, value] of Object.entries(mechanics)) {
+    console.log(`  ${key.padEnd(40)} ${typeof value === "object" ? JSON.stringify(value) : value}`);
+  }
+
   fs.writeFileSync(
     path.join(__dirname, "..", "results", "cost-evaluation.json"),
     JSON.stringify(report, null, 2) + "\n"
@@ -180,6 +192,45 @@ async function main() {
   }
   fs.writeFileSync(path.join(__dirname, "..", "results", "cost-evaluation.csv"), csvLines.join("\n") + "\n");
   console.log("\nWrote results/cost-evaluation.json and results/cost-evaluation.csv");
+}
+
+// Measurements that explain the per-operation costs rather than add to them:
+// how much of the difference between operations comes from filling an empty
+// storage slot, and how attribute cost grows with the size of the value.
+async function measureMechanics(provider, registryContract, nextNonce) {
+  const identity = deriveWallet(MECHANICS_IDENTITY_INDEX, provider);
+  const registry = registryContract.connect(identity);
+  const send = async (call) => Number((await (await call({ nonce: await nextNonce(identity.address) })).wait()).gasUsed);
+  const name = ethers.encodeBytes32String("doc/mechanics");
+  const value = (bytes) => "0x" + "ab".repeat(bytes);
+  const delegateType = ethers.encodeBytes32String("sigAuth");
+  const delegate = deriveWallet(0).address;
+
+  // The first write against an identity fills its empty `changed` slot.
+  const firstSetAttribute = await send((o) => registry.setAttribute(identity.address, name, value(41), 3600, o));
+  const laterSetAttribute = await send((o) => registry.setAttribute(identity.address, name, value(41), 3600, o));
+
+  // Attribute values are only passed in calldata and emitted, never stored.
+  const setAttributeByValueBytes = {};
+  for (const bytes of [32, 64, 320, 1024]) {
+    setAttributeByValueBytes[bytes] = await send((o) => registry.setAttribute(identity.address, name, value(bytes), 3600, o));
+  }
+
+  // `changed` is already non-zero here, so a new delegate fills one empty
+  // slot (its expiry); revoking and re-adding it only overwrite slots.
+  const addDelegateNewSlot = await send((o) => registry.addDelegate(identity.address, delegateType, delegate, 3600, o));
+  const revokeDelegate = await send((o) => registry.revokeDelegate(identity.address, delegateType, delegate, o));
+  const addDelegateAgain = await send((o) => registry.addDelegate(identity.address, delegateType, delegate, 3600, o));
+
+  return {
+    firstSetAttribute,
+    laterSetAttribute,
+    emptySlotPremium: firstSetAttribute - laterSetAttribute,
+    setAttributeByValueBytes,
+    addDelegateNewSlot,
+    revokeDelegate,
+    addDelegateAgainInLaterTransaction: addDelegateAgain,
+  };
 }
 
 // EthrDID's write methods resolve to the transaction hash (string), not the

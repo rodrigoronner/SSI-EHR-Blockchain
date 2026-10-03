@@ -16,7 +16,7 @@ const { summarize, summarizeLatency, formatCi } = require("./lib/stats");
 
 const artifact = require("../artifacts/contracts/EHRRegistry.sol/EHRRegistry.json");
 const NUM_POOL_WALLETS = 20; // Hardhat's default node only funds indices 0-19
-const LATENCY_SAMPLES_PER_MODE = 20;
+const LATENCY_SAMPLES_PER_MODE = 100; // enough for p95 and p99 to differ from the maximum
 const THROUGHPUT_BATCH_SIZES = [10, 50, 100, 500];
 // Each batch size is run repeatedly rather than once, so that throughput can
 // be reported with a confidence interval instead of as a single observation.
@@ -46,9 +46,33 @@ function uniqueAttributeCall(registryContract, wallet, nonce) {
     .setAttribute(wallet.address, name, value, 3600, { nonce, gasLimit: 150000 });
 }
 
+// Seeded PRNG (mulberry32), so the random submission times below are the
+// same on every run and the latency experiment is reproducible.
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function runLatencyMode(provider, registryContract, wallet, nextNonce, mode, label) {
   const latencies = [];
+  // Under interval mining, sending each transaction right after the previous
+  // one is confirmed would always land just after a block and wait a full
+  // interval. Waiting a uniformly random fraction of the interval first makes
+  // submissions independent of the block schedule, as real clients are, so
+  // the mean reflects a typical wait rather than the worst case.
+  const random = seededRandom(mode.ms || 1);
   for (let i = 0; i < LATENCY_SAMPLES_PER_MODE; i++) {
+    if (mode.type === "interval") {
+      await sleep(random() * mode.ms);
+    }
     const nonce = await nextNonce(wallet.address);
     const start = Date.now();
     const tx = await uniqueAttributeCall(registryContract, wallet, nonce);

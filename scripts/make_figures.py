@@ -8,18 +8,51 @@ Figures are written to results/figures/ by default; pass a directory as the
 first argument to write them elsewhere (e.g. next to the paper's source)."""
 import json
 import os
+import subprocess
 import sys
 
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(ROOT, "results")
 FIGDIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RESULTS, "figures")
 os.makedirs(FIGDIR, exist_ok=True)
 
+# The paper's conceptual figures are set in Latin Modern Sans at 7 pt (6 pt
+# for secondary text). Use the same face when a TeX installation provides
+# it, so all figures read as one set; otherwise fall back to the default.
+def _use_latin_modern_sans():
+    try:
+        for name in ("lmsans10-regular.otf", "lmsans10-bold.otf"):
+            path = subprocess.run(["kpsewhich", name], capture_output=True, text=True).stdout.strip()
+            if not path:
+                return
+            font_manager.fontManager.addfont(path)
+        plt.rcParams["font.family"] = "Latin Modern Sans"
+    except OSError:
+        pass
+
+
+_use_latin_modern_sans()
+
+# Figures are drawn at their printed size (one column, 8.4 cm), so the type
+# sizes below are the sizes that appear on the page.
+COLUMN_WIDTH_IN = 8.4 / 2.54
+
 plt.rcParams.update(
     {
-        "font.size": 10,
+        "font.size": 7,
+        "axes.titlesize": 7,
+        "axes.labelsize": 7,
+        "xtick.labelsize": 6,
+        "ytick.labelsize": 6,
+        "legend.fontsize": 6,
+        "axes.linewidth": 0.6,
+        "lines.linewidth": 0.9,
+        "xtick.major.width": 0.6,
+        "ytick.major.width": 0.6,
+        "axes.axisbelow": True,
         "axes.spines.top": False,
         "axes.spines.right": False,
         "axes.grid": True,
@@ -30,7 +63,16 @@ plt.rcParams.update(
 )
 
 BLUE = "#2c6fbb"
-GREY = "#555555"
+GREY = "#4a4a4a"  # the grey of the conceptual figures
+
+
+def save(fig, name):
+    # Vector PDF for the paper, plus a 600 dpi PNG for submission systems
+    # that ask for raster artwork.
+    for ext, kwargs in (("pdf", {}), ("png", {"dpi": 600})):
+        out = os.path.join(FIGDIR, f"{name}.{ext}")
+        fig.savefig(out, **kwargs)
+        print("wrote", out)
 
 
 def make_cost_figure():
@@ -56,25 +98,23 @@ def make_cost_figure():
     err_high = [hi - m for hi, m in zip(maxs, means)]
     usd = [data["operations"][op]["meanUsd"] for op in ops]
 
-    fig, ax = plt.subplots(figsize=(6.4, 4.8))
+    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 2.7))
     y_pos = range(len(ops))
-    ax.barh(y_pos, means, xerr=[err_low, err_high], color=BLUE, height=0.6, capsize=3)
+    ax.barh(y_pos, means, xerr=[err_low, err_high], color=BLUE, height=0.6, capsize=2)
     ax.set_yticks(list(y_pos))
     ax.set_yticklabels([labels_map[op] for op in ops])
     ax.invert_yaxis()
-    ax.set_xlabel("Gas used (mean of 5 trials, min–max range)")
-    ax.set_title(
-        f"EHRRegistry gas cost per operation\n"
-        f"(@ {data['assumptions']['gasPriceGwei']} gwei, ETH = "
-        f"${data['assumptions']['ethUsdPrice']:,})"
+    ax.set_xlabel(
+        f"Gas used, mean of 5 trials with min–max range\n"
+        f"(labels: USD at {data['assumptions']['gasPriceGwei']} gwei, ETH = ${data['assumptions']['ethUsdPrice']:,})"
     )
+    ax.xaxis.set_major_formatter(lambda v, _: f"{v / 1000:.0f}k" if v else "0")
+    ax.set_xlim(0, max(means) * 1.16)
     for i, (m, u) in enumerate(zip(means, usd)):
-        ax.text(m + max(means) * 0.02, i, f"${u:.2f}", va="center", fontsize=9, color=GREY)
+        ax.text(m + max(means) * 0.02, i, f"${u:.2f}", va="center", fontsize=6, color=GREY)
 
     fig.tight_layout()
-    out = os.path.join(FIGDIR, "cost-evaluation.pdf")
-    fig.savefig(out)
-    print("wrote", out)
+    save(fig, "cost-evaluation")
 
 
 def make_performance_figure():
@@ -86,7 +126,7 @@ def make_performance_figure():
     # Single column of 4 stacked subplots (rather than a 2x2 grid) so each
     # plot renders at close to the paper's full column width and is legible
     # on its own instead of being squeezed into a quarter of the figure.
-    fig, axes = plt.subplots(4, 1, figsize=(5.0, 9.6))
+    fig, axes = plt.subplots(4, 1, figsize=(COLUMN_WIDTH_IN, 6.6))
 
     # (a) latency vs mining mode
     modes = [
@@ -101,22 +141,25 @@ def make_performance_figure():
     width = 0.35
     ax = axes[0]
     ax.bar(
-        [i - width / 2 for i in x], means, width=width, yerr=ci, capsize=3,
+        [i - width / 2 for i in x], means, width=width, yerr=ci, capsize=2,
         label="mean (95% CI)", color=BLUE,
     )
     ax.bar([i + width / 2 for i in x], p95, width=width, label="p95", color=GREY)
     ax.set_xticks(list(x))
     ax.set_xticklabels([label for _, label in modes])
+    # Log scale: auto-mine (~40 ms) would otherwise be invisible next to the
+    # interval modes (seconds).
+    ax.set_yscale("log")
     ax.set_ylabel("Confirmation latency (ms)")
     ax.set_title("(a) On-chain latency vs. mining cadence")
-    ax.legend(frameon=False, fontsize=8)
+    ax.legend(frameon=False)
 
     # (b) throughput vs batch size
     ax = axes[1]
     batch_sizes = [row["batchSize"] for row in data["throughput"]]
     tps = [row["txPerSecond"]["mean"] for row in data["throughput"]]
     tps_ci = [row["txPerSecond"]["ci95"] for row in data["throughput"]]
-    ax.errorbar(batch_sizes, tps, yerr=tps_ci, marker="o", capsize=3, color=BLUE)
+    ax.errorbar(batch_sizes, tps, yerr=tps_ci, marker="o", markersize=3, capsize=2, color=BLUE)
     ax.set_xscale("log")
     ax.set_xlabel("Concurrent batch size")
     ax.set_ylabel("Throughput (tx/s)")
@@ -140,7 +183,7 @@ def make_performance_figure():
             [row[key]["mean"] for row in by_size],
             yerr=[row[key]["ci95"] for row in by_size],
             marker=marker,
-            markersize=4,
+            markersize=3,
             linestyle=style,
             color=color,
             label=label,
@@ -153,24 +196,23 @@ def make_performance_figure():
     ax.set_ylabel("Latency (ms)")
     ax.set_title("(c) Off-chain document path vs. size")
     ax.set_xticks(sizes)
-    ax.set_xticklabels([row["label"].replace(" ", "") for row in by_size], fontsize=8)
-    ax.legend(frameon=False, fontsize=7.5, ncol=2)
+    ax.set_xticklabels([row["label"].replace(" ", "") for row in by_size])
+    ax.legend(frameon=False, ncol=2)
 
     # (d) VC sign/verify latency
     ax = axes[3]
     vc_labels = ["sign", "verify"]
     vc_means = [offchain["vc"]["sign"]["mean"], offchain["vc"]["verify"]["mean"]]
     vc_ci = [offchain["vc"]["sign"]["ci95"], offchain["vc"]["verify"]["ci95"]]
-    ax.bar(vc_labels, vc_means, yerr=vc_ci, capsize=4, color=BLUE, width=0.5)
+    ax.bar(vc_labels, vc_means, yerr=vc_ci, capsize=2, color=BLUE, width=0.5)
     ax.set_ylabel("Latency (ms)")
     ax.set_title("(d) VC sign/verify latency")
     for i, (m, e) in enumerate(zip(vc_means, vc_ci)):
-        ax.text(i, m + e, f"{m:.2f} ms", ha="center", va="bottom", fontsize=9, color=GREY)
+        ax.text(i, m + e, f"{m:.2f} ms", ha="center", va="bottom", fontsize=6, color=GREY)
+    ax.set_ylim(0, max(m + e for m, e in zip(vc_means, vc_ci)) * 1.2)
 
-    fig.tight_layout(h_pad=2.0)
-    out = os.path.join(FIGDIR, "performance-evaluation.pdf")
-    fig.savefig(out)
-    print("wrote", out)
+    fig.tight_layout(h_pad=1.2)
+    save(fig, "performance-evaluation")
 
 
 if __name__ == "__main__":

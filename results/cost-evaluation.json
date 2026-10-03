@@ -9,9 +9,9 @@
     "registryAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
   },
   "deployment": {
-    "gasUsed": 1186625,
-    "eth": 0.0237325,
-    "usd": 71.1975
+    "gasUsed": 1306373,
+    "eth": 0.02612746,
+    "usd": 78.38238000000001
   },
   "operations": {
     "addDelegate": {
@@ -46,63 +46,77 @@
     },
     "setAttributeCidLength": {
       "n": 5,
-      "minGas": 34934,
-      "meanGas": 34944,
-      "maxGas": 34946,
+      "minGas": 34826,
+      "meanGas": 34836,
+      "maxGas": 34838,
       "sdGas": 5.4,
       "ci95Gas": 6.7,
-      "meanEth": 0.00069888,
-      "meanUsd": 2.0966400000000003
+      "meanEth": 0.00069672,
+      "meanUsd": 2.09016
     },
     "revokeAttribute": {
       "n": 5,
-      "minGas": 34648,
-      "meanGas": 34658,
-      "maxGas": 34660,
+      "minGas": 34540,
+      "meanGas": 34550,
+      "maxGas": 34552,
       "sdGas": 5.4,
       "ci95Gas": 6.7,
-      "meanEth": 0.00069316,
-      "meanUsd": 2.0794799999999998
+      "meanEth": 0.000691,
+      "meanUsd": 2.073
     },
     "changeOwner": {
       "n": 5,
-      "minGas": 51753,
-      "meanGas": 51763,
-      "maxGas": 51765,
-      "sdGas": 5.4,
-      "ci95Gas": 6.7,
-      "meanEth": 0.00103526,
-      "meanUsd": 3.10578
+      "minGas": 53976,
+      "meanGas": 53983,
+      "maxGas": 53988,
+      "sdGas": 6.6,
+      "ci95Gas": 8.2,
+      "meanEth": 0.00107966,
+      "meanUsd": 3.23898
     },
     "setGuardians": {
       "n": 5,
-      "minGas": 143520,
-      "meanGas": 143520,
-      "maxGas": 143520,
+      "minGas": 165828,
+      "meanGas": 165828,
+      "maxGas": 165828,
       "sdGas": 0,
       "ci95Gas": 0,
-      "meanEth": 0.0028704,
-      "meanUsd": 8.6112
+      "meanEth": 0.00331656,
+      "meanUsd": 9.94968
     },
     "approveRecoveryNonExecuting": {
       "n": 5,
-      "minGas": 76480,
-      "meanGas": 76480,
-      "maxGas": 76480,
+      "minGas": 78856,
+      "meanGas": 78856,
+      "maxGas": 78856,
       "sdGas": 0,
       "ci95Gas": 0,
-      "meanEth": 0.0015296,
-      "meanUsd": 4.5888
+      "meanEth": 0.00157712,
+      "meanUsd": 4.73136
     },
     "approveRecoveryExecuting": {
       "n": 5,
-      "minGas": 102737,
-      "meanGas": 102737,
-      "maxGas": 102737,
+      "minGas": 108319,
+      "meanGas": 108319,
+      "maxGas": 108319,
       "sdGas": 0,
       "ci95Gas": 0,
-      "meanEth": 0.00205474,
-      "meanUsd": 6.16422
+      "meanEth": 0.00216638,
+      "meanUsd": 6.49914
     }
+  },
+  "mechanics": {
+    "firstSetAttribute": 51818,
+    "laterSetAttribute": 34718,
+    "emptySlotPremium": 17100,
+    "setAttributeByValueBytes": {
+      "32": 34138,
+      "64": 34994,
+      "320": 41855,
+      "1024": 64830
+    },
+    "addDelegateNewSlot": 55114,
+    "revokeDelegate": 37681,
+    "addDelegateAgainInLaterTransaction": 38014
   }
 }
