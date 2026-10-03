@@ -36,6 +36,28 @@ describe("EHRRegistry", function () {
       ).to.be.revertedWith("EHRRegistry: not authorized (not identity owner)");
     });
 
+    it("refuses to transfer ownership to the zero address, which would hand control back to the original key [adversarial]", async function () {
+      const { registry, patient, hospitalBuyer } = await loadFixture(deployFixture);
+      await registry.connect(patient).changeOwner(patient.address, hospitalBuyer.address);
+      await expect(
+        registry.connect(hospitalBuyer).changeOwner(patient.address, ethers.ZeroAddress)
+      ).to.be.revertedWith("EHRRegistry: new owner cannot be the zero address");
+      expect(await registry.identityOwner(patient.address)).to.equal(hospitalBuyer.address);
+    });
+
+    it("keeps the previous owner's delegates valid after a transfer, until the new owner revokes them", async function () {
+      const { registry, patient, hospitalBuyer, stranger } = await loadFixture(deployFixture);
+      const sigAuth = ethers.encodeBytes32String("sigAuth");
+      await registry.connect(patient).addDelegate(patient.address, sigAuth, stranger.address, 3600);
+      await registry.connect(patient).changeOwner(patient.address, hospitalBuyer.address);
+      // Delegates belong to the identity, not to its owner, so the transfer
+      // alone does not remove them: a new owner (e.g. a hospital's acquirer)
+      // has to revoke the previous owner's delegates explicitly.
+      expect(await registry.validDelegate(patient.address, sigAuth, stranger.address)).to.equal(true);
+      await registry.connect(hospitalBuyer).revokeDelegate(patient.address, sigAuth, stranger.address);
+      expect(await registry.validDelegate(patient.address, sigAuth, stranger.address)).to.equal(false);
+    });
+
     it("the identifier itself never changes across ownership transfer", async function () {
       const { registry, patient, hospitalBuyer } = await loadFixture(deployFixture);
       const identityBefore = patient.address;

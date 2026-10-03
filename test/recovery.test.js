@@ -116,6 +116,50 @@ describe("Guardian-based social recovery", function () {
       ).to.be.revertedWith("EHRRegistry: guardian already approved");
     });
 
+    it("does not count an approval from a guardian that setGuardians has since removed [adversarial]", async function () {
+      const { registry, owner, guardian1, guardian2, guardian3, newOwner } = await loadFixture(withGuardiansConfigured);
+      const [, , , , , , replacement] = await ethers.getSigners();
+      // guardian1 approves, then the owner replaces guardian1; threshold stays 2.
+      await registry.connect(guardian1).approveRecovery(owner.address, newOwner.address);
+      await registry
+        .connect(owner)
+        .setGuardians(owner.address, [guardian2.address, guardian3.address, replacement.address], 2);
+      // A single approval under the new set must not be enough.
+      await registry.connect(replacement).approveRecovery(owner.address, newOwner.address);
+      expect(await registry.identityOwner(owner.address)).to.equal(owner.address);
+    });
+
+    it("does not carry approvals left over from before a recovery into the next guardian set [adversarial]", async function () {
+      const { registry, owner, guardian1, guardian2, guardian3, newOwner } = await loadFixture(withGuardiansConfigured);
+      const [, , , , , , freshGuardian1, freshGuardian2, attacker] = await ethers.getSigners();
+      // guardian3 approves an address that never reaches the threshold...
+      await registry.connect(guardian3).approveRecovery(owner.address, attacker.address);
+      // ...while guardian1 and guardian2 complete a legitimate recovery.
+      await registry.connect(guardian1).approveRecovery(owner.address, newOwner.address);
+      await registry.connect(guardian2).approveRecovery(owner.address, newOwner.address);
+      await registry
+        .connect(newOwner)
+        .setGuardians(owner.address, [freshGuardian1.address, freshGuardian2.address], 2);
+      // One approval for the stale address must not complete a recovery to it.
+      await registry.connect(freshGuardian1).approveRecovery(owner.address, attacker.address);
+      expect(await registry.identityOwner(owner.address)).to.equal(newOwner.address);
+    });
+
+    it("lets the owner cancel pending approvals, which then no longer count", async function () {
+      const { registry, owner, guardian1, guardian2, newOwner } = await loadFixture(withGuardiansConfigured);
+      await registry.connect(guardian1).approveRecovery(owner.address, newOwner.address);
+      await expect(registry.connect(owner).cancelRecovery(owner.address)).to.emit(registry, "RecoveryCancelled");
+      await registry.connect(guardian2).approveRecovery(owner.address, newOwner.address);
+      expect(await registry.identityOwner(owner.address)).to.equal(owner.address);
+    });
+
+    it("does not let anyone but the owner cancel pending approvals [adversarial]", async function () {
+      const { registry, owner, guardian1 } = await loadFixture(withGuardiansConfigured);
+      await expect(registry.connect(guardian1).cancelRecovery(owner.address)).to.be.revertedWith(
+        "EHRRegistry: not authorized (not identity owner)"
+      );
+    });
+
     it("clears the guardian set after a successful recovery, requiring the new owner to re-authorize guardians", async function () {
       const { registry, owner, guardian1, guardian2, guardian3, newOwner } = await loadFixture(
         withGuardiansConfigured
@@ -147,6 +191,24 @@ describe("Guardian-based social recovery", function () {
         registry,
         "GuardiansConfigured"
       );
+    });
+  });
+
+  describe("ownership transfer", function () {
+    it("does not let guardians chosen by a previous owner recover the identity after a transfer [adversarial]", async function () {
+      const { registry, owner, guardian1, guardian2, guardian3, stranger } = await loadFixture(deployFixture);
+      const [, , , , , , acquirer] = await ethers.getSigners();
+      await registry
+        .connect(owner)
+        .setGuardians(owner.address, [guardian1.address, guardian2.address, guardian3.address], 2);
+      await registry.connect(guardian1).approveRecovery(owner.address, stranger.address);
+      // e.g. a hospital is sold: its new owner must not inherit the old guardians.
+      await registry.connect(owner).changeOwner(owner.address, acquirer.address);
+      expect(await registry.isGuardian(owner.address, guardian2.address)).to.equal(false);
+      await expect(
+        registry.connect(guardian2).approveRecovery(owner.address, stranger.address)
+      ).to.be.revertedWith("EHRRegistry: caller is not a guardian for this identity");
+      expect(await registry.identityOwner(owner.address)).to.equal(acquirer.address);
     });
   });
 });

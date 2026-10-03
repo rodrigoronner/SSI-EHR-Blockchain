@@ -3,9 +3,12 @@ pragma solidity ^0.8.24;
 
 /// @title EHRRegistry
 /// @notice On-chain DID registry for patients, physicians, and hospitals.
-/// Implements the same interface as ERC-1056's EthereumDIDRegistry, so
-/// standard ethr-did / ethr-did-resolver tooling resolves identities here
-/// without any custom resolver.
+/// Implements the unsigned half of ERC-1056's EthereumDIDRegistry interface
+/// (identityOwner, changed, changeOwner, validDelegate, add/revokeDelegate,
+/// set/revokeAttribute), which is all ethr-did / ethr-did-resolver need to
+/// resolve identities here without a custom resolver. The *Signed
+/// meta-transaction variants are not implemented, so every change is a
+/// transaction sent and paid for by the identity's current owner.
 /// @dev Attribute values are never written to storage, only emitted as
 /// events; a DID Document is rebuilt off-chain by walking the event log
 /// backwards from `changed[identity]`. Guardian recovery exists because
@@ -18,10 +21,15 @@ contract EHRRegistry {
 
     mapping(address => address[]) public guardians;
     mapping(address => uint256) public recoveryThreshold;
-    // identity => proposedNewOwner => guardian => already approved?
-    mapping(address => mapping(address => mapping(address => bool))) public recoveryApprovals;
-    // identity => proposedNewOwner => number of distinct guardian approvals so far
-    mapping(address => mapping(address => uint256)) public recoveryApprovalCount;
+    // Approvals only count within the epoch they were cast in. The epoch moves
+    // on whenever the guardian set or the owner changes, or the owner cancels,
+    // so an approval from a removed guardian, or one left over from before a
+    // recovery or a transfer, can never help reach a later threshold.
+    mapping(address => uint256) public recoveryEpoch;
+    // identity => epoch => proposedNewOwner => guardian => already approved?
+    mapping(address => mapping(uint256 => mapping(address => mapping(address => bool)))) public recoveryApprovals;
+    // identity => epoch => proposedNewOwner => number of distinct guardian approvals
+    mapping(address => mapping(uint256 => mapping(address => uint256))) public recoveryApprovalCount;
 
     event DIDOwnerChanged(address indexed identity, address owner, uint256 previousChange);
 
@@ -49,6 +57,8 @@ contract EHRRegistry {
 
     event RecoveryExecuted(address indexed identity, address newOwner);
 
+    event RecoveryCancelled(address indexed identity, uint256 newEpoch);
+
     modifier onlyOwner(address identity, address actor) {
         require(actor == identityOwner(identity), "EHRRegistry: not authorized (not identity owner)");
         _;
@@ -70,9 +80,17 @@ contract EHRRegistry {
     // ---------------------------------------------------------------------
 
     function _changeOwner(address identity, address actor, address newOwner) internal onlyOwner(identity, actor) {
+        // The zero address would make identityOwner() fall back to the
+        // identity's original key, which after a recovery is the lost one.
+        require(newOwner != address(0), "EHRRegistry: new owner cannot be the zero address");
         owners[identity] = newOwner;
         emit DIDOwnerChanged(identity, newOwner, changed[identity]);
         changed[identity] = block.number;
+        // Guardians are chosen by an owner for that owner: a new owner (e.g. a
+        // hospital's acquirer) must not inherit the previous owner's guardians.
+        if (guardians[identity].length != 0) {
+            _resetRecovery(identity);
+        }
     }
 
     function changeOwner(address identity, address newOwner) public {
@@ -170,7 +188,16 @@ contract EHRRegistry {
         }
         guardians[identity] = newGuardians;
         recoveryThreshold[identity] = threshold;
+        // Approvals cast under the previous guardian set no longer count.
+        recoveryEpoch[identity] += 1;
         emit GuardiansConfigured(identity, newGuardians, threshold);
+    }
+
+    /// @notice Lets an owner who still holds the key discard every pending
+    /// recovery approval, e.g. after noticing an approval it did not expect.
+    function cancelRecovery(address identity) public onlyOwner(identity, msg.sender) {
+        recoveryEpoch[identity] += 1;
+        emit RecoveryCancelled(identity, recoveryEpoch[identity]);
     }
 
     function isGuardian(address identity, address account) public view returns (bool) {
@@ -190,12 +217,13 @@ contract EHRRegistry {
     function approveRecovery(address identity, address proposedNewOwner) public {
         require(isGuardian(identity, msg.sender), "EHRRegistry: caller is not a guardian for this identity");
         require(proposedNewOwner != address(0), "EHRRegistry: cannot recover to the zero address");
+        uint256 epoch = recoveryEpoch[identity];
         require(
-            !recoveryApprovals[identity][proposedNewOwner][msg.sender], "EHRRegistry: guardian already approved"
+            !recoveryApprovals[identity][epoch][proposedNewOwner][msg.sender], "EHRRegistry: guardian already approved"
         );
 
-        recoveryApprovals[identity][proposedNewOwner][msg.sender] = true;
-        uint256 approvalCount = ++recoveryApprovalCount[identity][proposedNewOwner];
+        recoveryApprovals[identity][epoch][proposedNewOwner][msg.sender] = true;
+        uint256 approvalCount = ++recoveryApprovalCount[identity][epoch][proposedNewOwner];
         emit RecoveryApproved(identity, proposedNewOwner, msg.sender, approvalCount);
 
         if (approvalCount >= recoveryThreshold[identity]) {
@@ -210,7 +238,12 @@ contract EHRRegistry {
         emit RecoveryExecuted(identity, newOwner);
 
         // The new owner has to call setGuardians again to re-enable recovery.
+        _resetRecovery(identity);
+    }
+
+    function _resetRecovery(address identity) internal {
         delete guardians[identity];
         delete recoveryThreshold[identity];
+        recoveryEpoch[identity] += 1;
     }
 }
