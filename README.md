@@ -4,21 +4,23 @@ A working implementation of a self-sovereign identity (SSI) framework for Electr
 
 The goal is to move EHR access control away from a central database that a single institution can lose, leak, or lock a patient out of, and place it under a mechanism that enforces ownership, delegation, and revocation via a smart contract rather than an administrator's discretion.
 
-This repository is the reference implementation behind the paper *"Self-Sovereign Identity Management through Decentralized Identifiers and Verifiable Credentials"*. Every number quoted in the paper's Cost, Performance, and Security sections was produced by the scripts and tests in this repo, and they're included here so the results can be reproduced independently.
+This repository is the reference implementation behind the paper *"Self-Sovereign Identity Management for Electronic Health Records through Decentralized Identifiers and Verifiable Credentials"*. Every number quoted in the paper's Cost, Performance, and Security sections was produced by the scripts and tests in this repo, and they're included here so the results can be reproduced independently.
 
 ## What it does
 
 - **Identity**: every actor gets a `did:ethr` identity anchored on-chain — created implicitly from an Ethereum address, no registration step or central issuer required.
 - **Ownership transfer**: a DID's controlling key can change (e.g., a hospital entity acquired by a new owner) without the identifier itself changing.
-- **Delegation**: an identity owner can grant another address time-bounded authority over part of their identity — for example, a parent delegating a child's identity to a temporary caregiver, with automatic expiry so nothing needs to be manually revoked later.
+- **Delegation**: an identity owner can list another address as a time-bounded delegate in the DID Document — for example, a parent delegating a child's identity to a temporary caregiver, with automatic expiry so nothing needs to be manually revoked later. A delegate can authenticate as the identity to any relying party that accepts it; it cannot change the identity on-chain.
 - **Attributes**: an identity can publish attributes such as a service endpoint or a document reference, each with its own validity period, and revoke them immediately if needed.
 - **Verifiable Credentials**: clinical actions (a lab request, a prescription) are issued as signed VC-JWTs tied to the issuing DID, so any third party can verify who issued them and that they haven't been tampered with — no shared database required.
 - **Off-chain storage**: documents are encrypted client-side, stored on IPFS, and referenced on-chain only by their CID, keeping large or sensitive payloads off the blockchain while preserving verifiability.
 - **Guardian-based recovery**: an identity owner can register a set of trusted guardians ahead of time; if their private key is later lost, a threshold of guardians can jointly restore access to a new key, which a simple ownership transfer cannot do on its own.
 
+What the registry controls is who may change an identity. Who may read a document is decided by who holds that document's encryption key, which is distributed outside this system.
+
 ## Architecture
 
-Everything on-chain runs through a single smart contract, `EHRRegistry.sol`, which implements the same interface as the ERC-1056 `EthereumDIDRegistry`. That's a deliberate choice: it means standard `ethr-did` / `ethr-did-resolver` tooling can resolve DIDs against this contract with no custom resolver logic.
+Everything on-chain runs through a single smart contract, `EHRRegistry.sol`, which implements the unsigned half of the ERC-1056 `EthereumDIDRegistry` interface. That's a deliberate choice: it means standard `ethr-did` / `ethr-did-resolver` tooling can resolve DIDs against this contract with no custom resolver logic. The `*Signed` meta-transaction functions are not implemented, so every change is a transaction sent and paid for by the identity's current owner.
 
 The contract itself never stores document contents or attribute values — only events. A DID Document is reconstructed by a resolver walking the event log backward from the identity's most recent change. This keeps writing cheap and keeps the contract's job narrow: proving who controls an identity and what they've published, not storing the data itself.
 
@@ -76,7 +78,7 @@ Every tool below is pinned to an exact version (Python/Matplotlib is the one exc
 
 | Tool | Version | Role |
 |---|---|---|
-| Mocha / Chai | 11.7.6 / 4.5.0 | Test runner and assertions for the 34-test suite (via `hardhat-toolbox`). |
+| Mocha / Chai | 11.7.6 / 4.5.0 | Test runner and assertions for the 48-test suite (via `hardhat-toolbox`). |
 | `solidity-coverage` | 0.8.17 | Statement/branch/function/line coverage of the contract (`npm run coverage`, via `hardhat-toolbox`). |
 | `@nomicfoundation/hardhat-chai-matchers` | 2.1.2 | Solidity-specific assertions — revert reasons, emitted events. |
 | `@nomicfoundation/hardhat-network-helpers` | 1.1.2 | Test fixtures and network snapshots between test cases. |
@@ -129,8 +131,8 @@ npm run recovery-demo # encrypted keystore + guardian-based social recovery
 To run the automated test suite instead (self-contained, no local node required):
 
 ```bash
-npm test                  # all 34 tests
-npm run test:adversarial  # only the 16 adversarial cases
+npm test                  # all 48 tests
+npm run test:adversarial  # only the 24 adversarial cases
 npm run coverage          # the same suite, instrumented with solidity-coverage
 ```
 
@@ -146,36 +148,40 @@ npm run deploy && npm run bench:vc-history    # VC verify vs. issuer history -> 
 npm run figures                               # regenerate results/figures/ from the JSON
 ```
 
-Gas is deterministic, so the cost figures reproduce to within a few gas (the `changeOwner` target is a fresh random address on each run, and zero bytes in it change the calldata cost). Timings will differ from machine to machine; the JSON files hold the values reported in the paper.
+Gas is deterministic and every input to the cost benchmark is fixed, so the cost figures reproduce exactly. Timings will differ from machine to machine; the JSON files hold the values reported in the paper.
 
 ## Results
 
 Cost, performance, and security were all measured, not just discussed. Full data is in `results/`:
 
-- `results/cost-evaluation.{json,csv}` — gas cost per operation, converted to USD at a representative gas price.
-- `results/performance-evaluation.{json,csv}` — confirmation latency across different block-time configurations, and throughput under concurrent load.
+- `results/cost-evaluation.{json,csv}` — gas cost per operation, converted to USD at a stated reference gas price (with a sensitivity table in `SUMMARY.md`).
+- `results/performance-evaluation.{json,csv}` — inclusion latency across different block-time configurations, and throughput under concurrent load, on a single local node.
 - `results/offchain-performance.{json,csv}` — latency of each stage of the off-chain path (encrypt, IPFS store, retrieve, decrypt) from 80 B to 50 MB, and Verifiable Credential sign/verify latency.
 - `results/vc-history.{json,csv}` — Verifiable Credential verification latency as the issuer's on-chain history grows from 0 to 500 changes.
 - `results/figures/` — the cost and performance figures used in the paper.
 - `results/security-analysis.md` — every access-control, revocation, and credential-integrity requirement mapped to the adversarial test that exercises it.
 - `results/SUMMARY.md` — all of the above consolidated.
 
-A few headline numbers (see the paper for full methodology): core identity operations cost between $2.08 and $4.33 per call at 20 gwei; confirmation latency tracks the underlying network's block time almost exactly (39.7 ms under instant mining, 4.0 s at a 4-second block interval); on-chain throughput reaches close to 300 tx/s under concurrent load; the full off-chain round trip for a 50 MB document takes 54.5 ms; and a 34-test suite, 16 of whose cases are adversarial, covering access control, revocation, credential tampering, and guardian recovery passes in full with 100% statement and branch coverage of the contract.
+A few headline numbers (see the paper for full methodology): core identity operations use 34,550 to 72,212 gas, $2.07 to $4.33 per call at 20 gwei and about 20 times less at recent mainnet prices; with transactions submitted at random times, inclusion takes about half the block interval on average (43.5 ms under instant mining, 1.0 s and 2.0 s at 2- and 4-second intervals); and a 48-test suite, 24 of whose cases are adversarial, covering identity governance, revocation, credential tampering, off-chain integrity, key storage, and guardian recovery passes in full with 100% statement and branch coverage of the contract. Throughput and the off-chain timings come from a single in-process node and characterise the client side only.
 
 ## Key management
 
-An identity's private key is stored as a password-encrypted keystore file, the same V3 format used by geth and MetaMask — the raw key is never written to disk unencrypted. That covers day-to-day storage, but doesn't help if the key is genuinely lost. For that, `EHRRegistry.sol` includes a guardian-based social recovery mechanism: an owner registers a set of guardians and an approval threshold in advance, and if the key is later lost, that threshold of guardians can jointly move the identity to a new address without any signature from the lost key. See `test/recovery.test.js` and `npm run recovery-demo`.
+An identity's private key is stored as a password-encrypted keystore file, the same V3 format used by geth and MetaMask — the raw key is never written to disk unencrypted. That covers day-to-day storage, but doesn't help if the key is genuinely lost. For that, `EHRRegistry.sol` includes a guardian-based social recovery mechanism: an owner registers a set of guardians and an approval threshold in advance, and if the key is later lost, that threshold of guardians can jointly move the identity to a new address without any signature from the lost key. Approvals only count within the current recovery epoch, which moves on whenever the guardians or the owner change or the owner calls `cancelRecovery`. See `test/recovery.test.js` and `npm run recovery-demo`.
+
+Recovery restores control of the DID, not the encryption keys of the patient's documents, and credentials signed by the previous key stop verifying once the owner changes.
 
 ## Known limitations
 
-- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly (on the same EVM), but latency and throughput should be treated as local proxies rather than mainnet claims.
+- All measurements come from a local Hardhat network rather than a public testnet or mainnet. Gas costs transfer directly to any EVM network at the same hard fork (Hardhat's default, Osaka, here), but latency and throughput should be treated as local proxies rather than mainnet claims.
 - The IPFS node used here is in-process and non-persistent — there's no pinning service behind it.
 - The contract has not been through a formal security audit.
-- Guardian recovery executes as soon as the approval threshold is met, with no time-lock or veto window for the legitimate owner to cancel a fraudulent attempt.
+- Guardian recovery executes as soon as the approval threshold is met, with no time-lock; `cancelRecovery` only helps an owner who notices pending approvals before then.
+- Only an identity's owner can write to it, so a physician cannot anchor a document on a patient's DID without the patient's transaction.
+- A transfer of ownership or a recovery leaves the delegates and attributes published before it in place: a new owner (e.g. a hospital's acquirer) should revoke the previous owner's delegates one by one. The contract cannot drop them itself, because resolvers rebuild the DID Document from delegation events, not from contract storage.
 - Revoking a delegate does not revoke decryption: a party that has already fetched and decrypted a document keeps it. Key distribution is assumed to happen out of band.
 - On-chain metadata is public even when content is not: anchoring a CID reveals that an address published a document of a given category at a given time.
 - There is no emergency ("break-glass") access path for an incapacitated patient.
 
 ## License
 
-Released under the [MIT License](LICENSE), with one exception: `contracts/EHRRegistry.sol` keeps the Apache-2.0 license declared in its SPDX header, since it follows the interface of the ERC-1056 `EthereumDIDRegistry` reference implementation, which is distributed under Apache-2.0.
+Released under the [MIT License](LICENSE), with one exception: `contracts/EHRRegistry.sol` keeps the Apache-2.0 license declared in its SPDX header, since it follows the interface of the ERC-1056 `EthereumDIDRegistry` reference implementation, which is distributed under Apache-2.0. The full Apache-2.0 text is in [LICENSE-APACHE-2.0](LICENSE-APACHE-2.0).
