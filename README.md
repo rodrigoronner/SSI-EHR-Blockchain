@@ -18,6 +18,8 @@ This repository is the reference implementation behind the paper *"Self-Sovereig
 
 What the registry controls is who may change an identity. Who may read a document is decided by who holds that document's encryption key, which is distributed outside this system.
 
+The framework targets planned care, where access is granted through owner-signed delegations. Emergency ("break-glass") access, in which a clinician overrides the patient's authorization under after-the-fact audit, is out of scope and left for future work.
+
 ## Architecture
 
 Everything on-chain runs through a single smart contract, `EHRRegistry.sol`, which implements the unsigned half of the ERC-1056 `EthereumDIDRegistry` interface. That's a deliberate choice: it means standard `ethr-did` / `ethr-did-resolver` tooling can resolve DIDs against this contract with no custom resolver logic. The `*Signed` meta-transaction functions are not implemented, so every change is a transaction sent and paid for by the identity's current owner.
@@ -180,7 +182,6 @@ Recovery restores control of the DID, not the encryption keys of the patient's d
 - A transfer of ownership or a recovery leaves the delegates and attributes published before it in place: a new owner (e.g. a hospital's acquirer) should revoke the previous owner's delegates one by one. The contract cannot drop them itself, because resolvers rebuild the DID Document from delegation events, not from contract storage.
 - Revoking a delegate does not revoke decryption: a party that has already fetched and decrypted a document keeps it. Key distribution is assumed to happen out of band.
 - On-chain metadata is public even when content is not: anchoring a CID reveals that an address published a document of a given category at a given time.
-- There is no emergency ("break-glass") access path for an incapacitated patient.
 
 ## License
 
